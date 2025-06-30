@@ -16,6 +16,7 @@ export default function Header() {
     { name: "About", href: "/about" },
     { name: "Contact", href: "/contact" },
     { name: "Customers", href: "/customers" },
+    { name: "Cart", href: "/cart" },
   ];
 
   const isActive = (href: string) => location === href;
@@ -30,8 +31,12 @@ export default function Header() {
           <div className="flex items-center">
             <Link href="/" className="flex-shrink-0">
               <div>
-                <h1 className="font-cinzel text-2xl font-bold text-maroon-500">RECKONIX</h1>
-                <p className="text-xs text-gray-600 -mt-1">Test. Measure. Calibrator</p>
+                <h1 className="font-cinzel text-2xl font-bold text-maroon-500">
+                  RECKONIX
+                </h1>
+                <p className="text-xs text-gray-600 -mt-1">
+                  Test. Measure. Calibrator
+                </p>
               </div>
             </Link>
           </div>
@@ -52,22 +57,6 @@ export default function Header() {
                   {item.name}
                 </Link>
               ))}
-              
-              {/* Cart Icon */}
-              <div className="relative">
-                <Button variant="ghost" size="sm" className="text-gray-700 hover:text-maroon-500">
-                  <ShoppingCart className="h-5 w-5" />
-                  {totalItems > 0 && (
-                    <span className="absolute -top-1 -right-1 bg-maroon-500 text-white text-xs rounded-full h-5 w-5 flex items-center justify-center">
-                      {totalItems}
-                    </span>
-                  )}
-                </Button>
-              </div>
-
-              <Button asChild className="bg-maroon-500 text-white hover:bg-maroon-600">
-                <Link href="/admin/login">Admin</Link>
-              </Button>
             </div>
           </div>
 
@@ -78,7 +67,11 @@ export default function Header() {
               onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
               className="text-gray-700 hover:text-maroon-500"
             >
-              {mobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
+              {mobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
             </Button>
           </div>
         </div>
@@ -109,23 +102,12 @@ export default function Header() {
                   {item.name}
                 </Link>
               ))}
-              
+
               {/* Mobile Cart */}
               <div className="px-3 py-2 flex items-center justify-between">
                 <span className="text-gray-700">Quote Items</span>
-                <div className="flex items-center">
-                  <ShoppingCart className="h-5 w-5 text-gray-500 mr-1" />
-                  <span className="text-sm text-gray-600">{totalItems}</span>
-                </div>
+                <div className="flex items-center"></div>
               </div>
-
-              <Link
-                href="/admin/login"
-                className="block px-3 py-2 text-base font-medium text-white bg-maroon-500 rounded-md hover:bg-maroon-600 transition-all"
-                onClick={() => setMobileMenuOpen(false)}
-              >
-                Admin Login
-              </Link>
             </div>
           </motion.div>
         )}
