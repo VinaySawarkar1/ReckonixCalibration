@@ -32,6 +32,22 @@ export default function AdminDashboard() {
   const [, setLocation] = useLocation();
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState("dashboard");
+  const [searchTerm, setSearchTerm] = useState("");
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const [showAddProductDialog, setShowAddProductDialog] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<any>(null);
+  const [newProduct, setNewProduct] = useState({
+    name: "",
+    category: "Calibration Systems" as const,
+    shortDescription: "",
+    fullTechnicalInfo: "",
+    specifications: [{ key: "", value: "" }],
+    featuresBenefits: [""],
+    applications: [""],
+    certifications: [""],
+    imageUrl: "",
+    catalogPdfUrl: ""
+  });
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -101,9 +117,123 @@ export default function AdminDashboard() {
     }
   });
 
+  // Create product mutation
+  const createProduct = useMutation({
+    mutationFn: (productData: any) => apiRequest("POST", "/api/products", productData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      setShowAddProductDialog(false);
+      setNewProduct({
+        name: "",
+        category: "Calibration Systems",
+        shortDescription: "",
+        fullTechnicalInfo: "",
+        specifications: [{ key: "", value: "" }],
+        featuresBenefits: [""],
+        applications: [""],
+        certifications: [""],
+        imageUrl: "",
+        catalogPdfUrl: ""
+      });
+      toast({
+        title: "Product Created",
+        description: "Product has been created successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create product.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Update product mutation
+  const updateProduct = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiRequest("PUT", `/api/products/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      setEditingProduct(null);
+      toast({
+        title: "Product Updated",
+        description: "Product has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update product.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  // Delete product mutation
+  const deleteProduct = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/products/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+      toast({
+        title: "Product Deleted",
+        description: "Product has been deleted successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete product.",
+        variant: "destructive",
+      });
+    }
+  });
+
   const handleLogout = () => {
     logout();
     setLocation("/admin/login");
+  };
+
+  // Filter products based on search and category
+  const filteredProducts = products.filter(product => {
+    const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+                         product.shortDescription.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
+    return matchesSearch && matchesCategory;
+  });
+
+  const handleAddProduct = () => {
+    const productData = {
+      ...newProduct,
+      specifications: newProduct.specifications.filter(s => s.key && s.value),
+      featuresBenefits: newProduct.featuresBenefits.filter(f => f.trim()),
+      applications: newProduct.applications.filter(a => a.trim()),
+      certifications: newProduct.certifications.filter(c => c.trim())
+    };
+    createProduct.mutate(productData);
+  };
+
+  const handleEditProduct = (product: any) => {
+    setEditingProduct({ ...product });
+  };
+
+  const handleUpdateProduct = () => {
+    if (editingProduct) {
+      const productData = {
+        ...editingProduct,
+        specifications: editingProduct.specifications.filter((s: any) => s.key && s.value),
+        featuresBenefits: editingProduct.featuresBenefits.filter((f: string) => f.trim()),
+        applications: editingProduct.applications.filter((a: string) => a.trim()),
+        certifications: editingProduct.certifications.filter((c: string) => c.trim())
+      };
+      updateProduct.mutate({ id: editingProduct.id, data: productData });
+    }
+  };
+
+  const handleDeleteProduct = (id: number) => {
+    if (confirm("Are you sure you want to delete this product?")) {
+      deleteProduct.mutate(id);
+    }
   };
 
   if (!user) {
@@ -263,7 +393,10 @@ export default function AdminDashboard() {
           <TabsContent value="products" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">Product Management</h2>
-              <Button className="bg-maroon-500 hover:bg-maroon-600">
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => setShowAddProductDialog(true)}
+              >
                 <Plus className="mr-2 h-4 w-4" />
                 Add New Product
               </Button>
@@ -274,17 +407,22 @@ export default function AdminDashboard() {
                 <div className="flex flex-col sm:flex-row gap-4 mb-6">
                   <div className="relative flex-1">
                     <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input placeholder="Search products..." className="pl-10" />
+                    <Input 
+                      placeholder="Search products..." 
+                      className="pl-10"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                    />
                   </div>
-                  <Select>
+                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
                     <SelectTrigger className="w-48">
                       <SelectValue placeholder="All Categories" />
                     </SelectTrigger>
                     <SelectContent>
                       <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="calibration">Calibration Systems</SelectItem>
-                      <SelectItem value="testing">Testing Systems</SelectItem>
-                      <SelectItem value="measuring">Measuring Instruments</SelectItem>
+                      <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
+                      <SelectItem value="Testing Systems">Testing Systems</SelectItem>
+                      <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -308,7 +446,7 @@ export default function AdminDashboard() {
                       </tr>
                     </thead>
                     <tbody className="bg-white divide-y divide-gray-200">
-                      {products.map((product) => (
+                      {filteredProducts.map((product) => (
                         <tr key={product.id}>
                           <td className="px-6 py-4 whitespace-nowrap">
                             <div className="flex items-center">
@@ -333,10 +471,20 @@ export default function AdminDashboard() {
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
                             <div className="flex space-x-2">
-                              <Button variant="ghost" size="sm">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditProduct(product)}
+                                className="text-blue-600 hover:text-blue-900"
+                              >
                                 <Edit className="h-4 w-4" />
                               </Button>
-                              <Button variant="ghost" size="sm" className="text-red-600 hover:text-red-900">
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-red-600 hover:text-red-900"
+                                onClick={() => handleDeleteProduct(product.id)}
+                              >
                                 <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
@@ -346,8 +494,139 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+
+                {filteredProducts.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No products found matching your criteria.
+                  </div>
+                )}
               </CardContent>
             </Card>
+
+            {/* Add Product Dialog */}
+            {showAddProductDialog && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                  <h3 className="text-lg font-semibold mb-4">Add New Product</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Product Name</label>
+                      <Input
+                        value={newProduct.name}
+                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
+                        placeholder="Enter product name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Category</label>
+                      <Select 
+                        value={newProduct.category} 
+                        onValueChange={(value: any) => setNewProduct({ ...newProduct, category: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
+                          <SelectItem value="Testing Systems">Testing Systems</SelectItem>
+                          <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Short Description</label>
+                      <Input
+                        value={newProduct.shortDescription}
+                        onChange={(e) => setNewProduct({ ...newProduct, shortDescription: e.target.value })}
+                        placeholder="Brief product description"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Image URL</label>
+                      <Input
+                        value={newProduct.imageUrl}
+                        onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })}
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-6">
+                    <Button variant="outline" onClick={() => setShowAddProductDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleAddProduct}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={!newProduct.name || !newProduct.shortDescription || !newProduct.imageUrl}
+                    >
+                      Add Product
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit Product Dialog */}
+            {editingProduct && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                  <h3 className="text-lg font-semibold mb-4">Edit Product</h3>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Product Name</label>
+                      <Input
+                        value={editingProduct.name}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
+                        placeholder="Enter product name"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Category</label>
+                      <Select 
+                        value={editingProduct.category} 
+                        onValueChange={(value: any) => setEditingProduct({ ...editingProduct, category: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
+                          <SelectItem value="Testing Systems">Testing Systems</SelectItem>
+                          <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Short Description</label>
+                      <Input
+                        value={editingProduct.shortDescription}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, shortDescription: e.target.value })}
+                        placeholder="Brief product description"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Image URL</label>
+                      <Input
+                        value={editingProduct.imageUrl}
+                        onChange={(e) => setEditingProduct({ ...editingProduct, imageUrl: e.target.value })}
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-6">
+                    <Button variant="outline" onClick={() => setEditingProduct(null)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleUpdateProduct}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Update Product
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
           </TabsContent>
 
           {/* Quotes Tab */}
