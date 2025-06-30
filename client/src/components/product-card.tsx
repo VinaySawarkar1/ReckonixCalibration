@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart } from "lucide-react";
+import { ShoppingCart, Eye } from "lucide-react";
 import { useCart } from "../context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -28,11 +28,11 @@ export default function ProductCard({ product }: ProductCardProps) {
   const getCategoryColor = (category: string) => {
     switch (category) {
       case "Calibration Systems":
-        return "bg-blue-100 text-blue-600";
+        return "bg-maroon-100 text-maroon-600";
       case "Testing Systems":
-        return "bg-green-100 text-green-600";
+        return "bg-blue-100 text-blue-600";
       case "Measuring Instruments":
-        return "bg-purple-100 text-purple-600";
+        return "bg-green-100 text-green-600";
       default:
         return "bg-gray-100 text-gray-600";
     }
@@ -52,7 +52,12 @@ export default function ProductCard({ product }: ProductCardProps) {
               className="w-full h-48 object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-            
+            <div className="absolute top-4 right-4">
+              <div className="bg-white/90 rounded-full p-2 flex items-center text-xs text-gray-600">
+                <Eye className="h-3 w-3 mr-1" />
+                {product.views}
+              </div>
+            </div>
           </div>
         </Link>
         
@@ -75,14 +80,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div className="flex justify-between items-center mt-auto pt-4 border-t">
             <Link 
               href={`/products/${product.id}`}
-              className="text-blue-500 hover:text-blue-600 font-medium text-sm transition-colors"
+              className="text-maroon-500 hover:text-maroon-600 font-medium text-sm transition-colors"
             >
               View Details
             </Link>
             <Button 
               onClick={handleAddToCart}
               size="sm"
-              className="bg-blue-500 text-white hover:bg-blue-600 transition-all"
+              className="bg-maroon-500 text-white hover:bg-maroon-600 transition-all"
             >
               <ShoppingCart className="h-3 w-3 mr-1" />
               Add to Quote
