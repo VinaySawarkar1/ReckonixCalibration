@@ -110,7 +110,7 @@ export default function AdminDashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-maroon-500 mx-auto mb-4"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-500 mx-auto mb-4"></div>
           <p className="text-gray-600">Loading...</p>
         </div>
       </div>
@@ -127,11 +127,11 @@ export default function AdminDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             <div className="flex items-center">
-              <h1 className="font-cinzel text-xl font-bold text-maroon-500">RECKONIX Admin</h1>
+              <h1 className="font-cinzel text-xl font-bold text-blue-500">RECKONIX Admin</h1>
             </div>
             <div className="flex items-center space-x-4">
               <span className="text-gray-700">Welcome, {user.username}</span>
-              <Button variant="ghost" onClick={handleLogout} className="text-gray-500 hover:text-maroon-500">
+              <Button variant="ghost" onClick={handleLogout} className="text-gray-500 hover:text-blue-500">
                 <LogOut className="h-4 w-4" />
               </Button>
             </div>
@@ -222,8 +222,8 @@ export default function AdminDashboard() {
               <Card>
                 <CardContent className="p-6">
                   <div className="flex items-center">
-                    <div className="p-3 rounded-full bg-maroon-100 mr-4">
-                      <Eye className="h-6 w-6 text-maroon-500" />
+                    <div className="p-3 rounded-full bg-blue-100 mr-4">
+                      <Eye className="h-6 w-6 text-blue-500" />
                     </div>
                     <div>
                       <p className="text-2xl font-bold text-gray-900">{analytics?.totalViews || 0}</p>
@@ -243,7 +243,7 @@ export default function AdminDashboard() {
                 <div className="space-y-4">
                   {quotes.slice(0, 5).map((quote) => (
                     <div key={quote.id} className="flex items-start border-b pb-4 last:border-b-0">
-                      <div className="w-2 h-2 bg-maroon-500 rounded-full mt-2 mr-3"></div>
+                      <div className="w-2 h-2 bg-blue-500 rounded-full mt-2 mr-3"></div>
                       <div className="flex-1">
                         <p className="text-gray-900">
                           New quote request from {quote.customerName}
@@ -263,7 +263,7 @@ export default function AdminDashboard() {
           <TabsContent value="products" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">Product Management</h2>
-              <Button className="bg-maroon-500 hover:bg-maroon-600">
+              <Button className="bg-blue-500 hover:bg-blue-600">
                 <Plus className="mr-2 h-4 w-4" />
                 Add New Product
               </Button>
@@ -418,7 +418,7 @@ export default function AdminDashboard() {
                             </Select>
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <Button variant="ghost" size="sm" className="text-maroon-600 hover:text-maroon-900">
+                            <Button variant="ghost" size="sm" className="text-blue-600 hover:text-blue-900">
                               View Details
                             </Button>
                           </td>
@@ -494,7 +494,7 @@ export default function AdminDashboard() {
                               variant="ghost"
                               size="sm"
                               onClick={() => markMessageReplied.mutate({ id: message.id, replied: !message.replied })}
-                              className="text-maroon-600 hover:text-maroon-900"
+                              className="text-blue-600 hover:text-blue-900"
                             >
                               {message.replied ? "Mark Unread" : "Mark Replied"}
                             </Button>
@@ -518,7 +518,7 @@ export default function AdminDashboard() {
                   <CardTitle>Website Views</CardTitle>
                 </CardHeader>
                 <CardContent>
-                  <div className="text-3xl font-bold text-maroon-500 mb-2">
+                  <div className="text-3xl font-bold text-blue-500 mb-2">
                     {analytics?.totalViews || 0}
                   </div>
                   <p className="text-gray-600">Total website views</p>
