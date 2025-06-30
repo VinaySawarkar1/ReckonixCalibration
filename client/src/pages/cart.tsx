@@ -65,7 +65,7 @@ export default function Cart() {
       customerName: customerInfo.name,
       customerEmail: customerInfo.email,
       customerPhone: customerInfo.phone,
-      company: customerInfo.company,
+      customerLocation: customerInfo.company,
       message: customerInfo.message,
       products: cartItems.map((item) => ({
         id: item.product.id,

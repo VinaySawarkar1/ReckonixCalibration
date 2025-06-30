@@ -46,7 +46,17 @@ export default function AdminDashboard() {
     applications: [""],
     certifications: [""],
     imageUrl: "",
-    catalogPdfUrl: ""
+    imageGallery: [],
+    catalogPdfUrl: "",
+    datasheetPdfUrl: "",
+    technicalDetails: {
+      dimensions: "",
+      weight: "",
+      powerRequirements: "",
+      operatingConditions: "",
+      warranty: "",
+      compliance: []
+    }
   });
 
   // Redirect if not authenticated
@@ -133,7 +143,17 @@ export default function AdminDashboard() {
         applications: [""],
         certifications: [""],
         imageUrl: "",
-        catalogPdfUrl: ""
+        imageGallery: [],
+        catalogPdfUrl: "",
+        datasheetPdfUrl: "",
+        technicalDetails: {
+          dimensions: "",
+          weight: "",
+          powerRequirements: "",
+          operatingConditions: "",
+          warranty: "",
+          compliance: []
+        }
       });
       toast({
         title: "Product Created",
@@ -271,7 +291,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-5">
+          <TabsList className="grid w-full grid-cols-6">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Dashboard
@@ -297,6 +317,10 @@ export default function AdminDashboard() {
                   {newMessages}
                 </Badge>
               )}
+            </TabsTrigger>
+            <TabsTrigger value="catalog" className="flex items-center gap-2">
+              <Download className="h-4 w-4" />
+              Catalog
             </TabsTrigger>
             <TabsTrigger value="analytics" className="flex items-center gap-2">
               <Eye className="h-4 w-4" />
@@ -549,6 +573,51 @@ export default function AdminDashboard() {
                         placeholder="https://example.com/image.jpg"
                       />
                     </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Datasheet PDF URL</label>
+                      <Input
+                        value={newProduct.datasheetPdfUrl}
+                        onChange={(e) => setNewProduct({ ...newProduct, datasheetPdfUrl: e.target.value })}
+                        placeholder="https://example.com/datasheet.pdf"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Technical Details</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Input
+                          placeholder="Dimensions"
+                          value={newProduct.technicalDetails.dimensions}
+                          onChange={(e) => setNewProduct({
+                            ...newProduct,
+                            technicalDetails: { ...newProduct.technicalDetails, dimensions: e.target.value }
+                          })}
+                        />
+                        <Input
+                          placeholder="Weight"
+                          value={newProduct.technicalDetails.weight}
+                          onChange={(e) => setNewProduct({
+                            ...newProduct,
+                            technicalDetails: { ...newProduct.technicalDetails, weight: e.target.value }
+                          })}
+                        />
+                        <Input
+                          placeholder="Power Requirements"
+                          value={newProduct.technicalDetails.powerRequirements}
+                          onChange={(e) => setNewProduct({
+                            ...newProduct,
+                            technicalDetails: { ...newProduct.technicalDetails, powerRequirements: e.target.value }
+                          })}
+                        />
+                        <Input
+                          placeholder="Operating Conditions"
+                          value={newProduct.technicalDetails.operatingConditions}
+                          onChange={(e) => setNewProduct({
+                            ...newProduct,
+                            technicalDetails: { ...newProduct.technicalDetails, operatingConditions: e.target.value }
+                          })}
+                        />
+                      </div>
+                    </div>
                   </div>
                   <div className="flex justify-end space-x-2 mt-6">
                     <Button variant="outline" onClick={() => setShowAddProductDialog(false)}>
@@ -783,6 +852,36 @@ export default function AdminDashboard() {
                     </tbody>
                   </table>
                 </div>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Catalog Tab */}
+          <TabsContent value="catalog" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Catalog Management</h2>
+            </div>
+
+            <Card>
+              <CardHeader>
+                <CardTitle>Main Product Catalog</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-1">Catalog Title</label>
+                  <Input placeholder="Main Product Catalog 2024" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Description</label>
+                  <Input placeholder="Complete product specifications and details" />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">PDF URL</label>
+                  <Input placeholder="https://example.com/catalog.pdf" />
+                </div>
+                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                  Update Catalog
+                </Button>
               </CardContent>
             </Card>
           </TabsContent>

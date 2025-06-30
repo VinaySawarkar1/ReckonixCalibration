@@ -30,7 +30,17 @@ export const productSchema = z.object({
   applications: z.array(z.string()),
   certifications: z.array(z.string()),
   imageUrl: z.string(),
+  imageGallery: z.array(z.string()).default([]),
   catalogPdfUrl: z.string().optional(),
+  datasheetPdfUrl: z.string().optional(),
+  technicalDetails: z.object({
+    dimensions: z.string().optional(),
+    weight: z.string().optional(),
+    powerRequirements: z.string().optional(),
+    operatingConditions: z.string().optional(),
+    warranty: z.string().optional(),
+    compliance: z.array(z.string()).default([])
+  }).optional(),
   views: z.number().default(0),
   createdAt: z.date().default(() => new Date())
 });
@@ -48,7 +58,17 @@ export const insertProductSchema = z.object({
   applications: z.array(z.string()),
   certifications: z.array(z.string()),
   imageUrl: z.string().url(),
-  catalogPdfUrl: z.string().url().optional()
+  imageGallery: z.array(z.string()).default([]),
+  catalogPdfUrl: z.string().url().optional(),
+  datasheetPdfUrl: z.string().url().optional(),
+  technicalDetails: z.object({
+    dimensions: z.string().optional(),
+    weight: z.string().optional(),
+    powerRequirements: z.string().optional(),
+    operatingConditions: z.string().optional(),
+    warranty: z.string().optional(),
+    compliance: z.array(z.string()).default([])
+  }).optional()
 });
 
 // Quote Request Schema
@@ -72,7 +92,7 @@ export const insertQuoteRequestSchema = z.object({
   customerName: z.string().min(2).max(100),
   customerEmail: z.string().email(),
   customerPhone: z.string().min(10).max(20),
-  customerLocation: z.string().optional(),
+  customerLocation: z.string().min(1).max(200),
   products: z.array(z.object({
     productId: z.number(),
     name: z.string(),

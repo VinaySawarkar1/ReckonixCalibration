@@ -235,13 +235,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Catalog route
+  // Catalog routes
   app.get("/api/catalog/main-catalog", async (req: Request, res: Response) => {
     try {
-      // In production, serve actual PDF file
-      res.json({ message: "Main catalog download - PDF file would be served here" });
+      const catalogInfo = await storage.getMainCatalog();
+      if (!catalogInfo || !catalogInfo.pdfUrl) {
+        return res.status(404).json({ message: "Main catalog not found" });
+      }
+      res.json(catalogInfo);
     } catch (error) {
       res.status(500).json({ message: "Failed to serve catalog" });
+    }
+  });
+
+  app.post("/api/catalog/main-catalog", async (req: Request, res: Response) => {
+    try {
+      // In production, verify JWT token here
+      const { pdfUrl, title, description } = req.body;
+      const catalog = await storage.updateMainCatalog({ pdfUrl, title, description });
+      res.json(catalog);
+    } catch (error) {
+      res.status(400).json({ message: "Failed to update catalog" });
     }
   });
 
