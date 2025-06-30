@@ -79,7 +79,7 @@ export default function Home() {
                 <Button asChild className="bg-yellow-500 text-black px-8 py-3 hover:bg-yellow-400 transform hover:scale-105 transition-all">
                   <Link href="/products">View Products</Link>
                 </Button>
-                <Button variant="outline" className="border-2 border-white text-white px-8 py-3 hover:bg-white hover:text-blue-600 transition-all">
+                <Button variant="outline" className="border-2 border-white text-white px-8 py-3 hover:bg-white hover:text-maroon-500 transition-all">
                   <Download className="mr-2 h-4 w-4" />
                   Download Catalog
                 </Button>

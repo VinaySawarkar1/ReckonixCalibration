@@ -61,16 +61,16 @@ export default {
           border: "var(--sidebar-border)",
           ring: "var(--sidebar-ring)",
         },
-        blue: {
-          50: "var(--blue-50)",
-          100: "var(--blue-100)",
-          500: "var(--blue-500)",
-          600: "var(--blue-600)",
-          700: "var(--blue-700)",
+        maroon: {
+          50: "var(--maroon-50)",
+          100: "var(--maroon-100)",
+          500: "var(--maroon-500)",
+          600: "var(--maroon-600)",
+          700: "var(--maroon-700)",
         },
-        slate: {
-          500: "var(--slate-500)",
-          600: "var(--slate-600)",
+        saddle: {
+          500: "var(--saddle-500)",
+          600: "var(--saddle-600)",
         }
       },
       borderRadius: {
