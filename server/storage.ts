@@ -1,0 +1,358 @@
+import { 
+  User, 
+  InsertUser, 
+  Product, 
+  InsertProduct, 
+  QuoteRequest, 
+  InsertQuoteRequest, 
+  ContactMessage, 
+  InsertContactMessage, 
+  ViewData 
+} from "@shared/schema";
+
+export interface IStorage {
+  // User methods
+  getUser(id: number): Promise<User | undefined>;
+  getUserByUsername(username: string): Promise<User | undefined>;
+  createUser(user: InsertUser): Promise<User>;
+
+  // Product methods
+  getAllProducts(category?: string): Promise<Product[]>;
+  getProduct(id: number): Promise<Product | undefined>;
+  createProduct(product: InsertProduct): Promise<Product>;
+  updateProduct(id: number, product: Partial<InsertProduct>): Promise<Product | undefined>;
+  deleteProduct(id: number): Promise<boolean>;
+  incrementProductViews(id: number): Promise<void>;
+
+  // Quote methods
+  getAllQuotes(): Promise<QuoteRequest[]>;
+  getQuote(id: number): Promise<QuoteRequest | undefined>;
+  createQuote(quote: InsertQuoteRequest): Promise<QuoteRequest>;
+  updateQuoteStatus(id: number, status: 'New' | 'Contacted' | 'Closed'): Promise<QuoteRequest | undefined>;
+
+  // Contact message methods
+  getAllMessages(): Promise<ContactMessage[]>;
+  getMessage(id: number): Promise<ContactMessage | undefined>;
+  createMessage(message: InsertContactMessage): Promise<ContactMessage>;
+  markMessageReplied(id: number, replied: boolean): Promise<ContactMessage | undefined>;
+
+  // Analytics methods
+  getWebsiteViews(): Promise<number>;
+  incrementWebsiteViews(ip?: string): Promise<void>;
+  getProductViews(): Promise<{ productId: number; views: number; productName: string }[]>;
+}
+
+export class MemStorage implements IStorage {
+  private users: Map<number, User>;
+  private products: Map<number, Product>;
+  private quotes: Map<number, QuoteRequest>;
+  private messages: Map<number, ContactMessage>;
+  private viewData: Map<string, ViewData>;
+  private currentUserId: number;
+  private currentProductId: number;
+  private currentQuoteId: number;
+  private currentMessageId: number;
+  private currentViewId: number;
+
+  constructor() {
+    this.users = new Map();
+    this.products = new Map();
+    this.quotes = new Map();
+    this.messages = new Map();
+    this.viewData = new Map();
+    this.currentUserId = 1;
+    this.currentProductId = 1;
+    this.currentQuoteId = 1;
+    this.currentMessageId = 1;
+    this.currentViewId = 1;
+
+    // Initialize with default admin user
+    this.createUser({
+      username: 'admin',
+      password: 'admin123', // In real app, this would be hashed
+      role: 'admin'
+    });
+
+    // Initialize with sample products
+    this.initializeSampleData();
+  }
+
+  private async initializeSampleData() {
+    const sampleProducts: InsertProduct[] = [
+      {
+        name: "Digital Pressure Calibrator DPC-5000",
+        category: "Calibration Systems",
+        shortDescription: "High-precision digital calibrator for pressure measurement with advanced automation features",
+        fullTechnicalInfo: "Advanced digital pressure calibrator designed for high-precision calibration of pressure measuring instruments. Features automated calibration sequences, data logging capabilities, and compliance with international standards.",
+        specifications: [
+          { key: "Pressure Range", value: "0 to 1000 PSI (0 to 6895 kPa)" },
+          { key: "Accuracy", value: "±0.025% of reading" },
+          { key: "Resolution", value: "0.001 PSI" },
+          { key: "Operating Temperature", value: "-10°C to +50°C" },
+          { key: "Power Supply", value: "100-240V AC, 50/60Hz" },
+          { key: "Communication", value: "USB 2.0, RS-232, Ethernet" }
+        ],
+        featuresBenefits: [
+          "Automated calibration sequences reduce human error",
+          "Comprehensive data logging with export capabilities",
+          "Multi-interface connectivity for flexible integration",
+          "User-friendly calibration software with step-by-step guidance"
+        ],
+        applications: [
+          "Aerospace Industry",
+          "Automotive Manufacturing", 
+          "Pharmaceutical",
+          "Oil & Gas",
+          "Power Generation",
+          "Marine Industry"
+        ],
+        certifications: [
+          "ISO 9001:2015",
+          "NIST Traceable",
+          "CE Marking",
+          "ISO 17025",
+          "RoHS Compliant",
+          "FCC Certified"
+        ],
+        imageUrl: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        catalogPdfUrl: ""
+      },
+      {
+        name: "Temperature Calibrator TC-200",
+        category: "Calibration Systems",
+        shortDescription: "Advanced temperature calibration system with multi-point referencing capability",
+        fullTechnicalInfo: "Precision temperature calibrator with wide range coverage and exceptional accuracy for laboratory and field applications.",
+        specifications: [
+          { key: "Temperature Range", value: "-200°C to +1200°C" },
+          { key: "Accuracy", value: "±0.1°C" },
+          { key: "Stability", value: "±0.05°C" },
+          { key: "Sensor Types", value: "RTD, Thermocouple, Thermistor" }
+        ],
+        featuresBenefits: [
+          "Wide temperature range coverage",
+          "High accuracy and stability",
+          "Multiple sensor type support",
+          "Portable design for field use"
+        ],
+        applications: ["Pharmaceutical", "Food Processing", "HVAC", "Aerospace"],
+        certifications: ["ISO 9001:2015", "NIST Traceable", "CE Marking"],
+        imageUrl: "https://images.unsplash.com/photo-1581092921461-eab62e97a780?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
+      },
+      {
+        name: "Material Testing Machine MTM-100",
+        category: "Testing Systems", 
+        shortDescription: "Universal testing machine for tensile, compression, and flexural testing",
+        fullTechnicalInfo: "High-capacity universal testing machine designed for comprehensive material characterization and quality control testing.",
+        specifications: [
+          { key: "Load Capacity", value: "100 kN" },
+          { key: "Load Accuracy", value: "±0.5% of indicated value" },
+          { key: "Crosshead Speed", value: "0.001 to 500 mm/min" },
+          { key: "Test Space", value: "600 mm" }
+        ],
+        featuresBenefits: [
+          "High load capacity for various materials",
+          "Precise load and displacement control",
+          "Comprehensive test software package",
+          "Automated test sequence capability"
+        ],
+        applications: ["Materials Research", "Quality Control", "R&D Labs", "Manufacturing"],
+        certifications: ["ISO 9001:2015", "ASTM Standards", "CE Marking"],
+        imageUrl: "https://images.unsplash.com/photo-1565514020179-026b92b84bb6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
+      },
+      {
+        name: "Digital Multimeter DMM-6500",
+        category: "Measuring Instruments",
+        shortDescription: "High-precision digital multimeter with advanced measurement capabilities", 
+        fullTechnicalInfo: "Professional-grade digital multimeter offering exceptional accuracy and versatility for electrical measurements.",
+        specifications: [
+          { key: "DC Voltage", value: "100 mV to 1000 V" },
+          { key: "AC Voltage", value: "100 mV to 750 V" },
+          { key: "Resistance", value: "100 Ω to 100 MΩ" },
+          { key: "Accuracy", value: "±0.0035%" }
+        ],
+        featuresBenefits: [
+          "High accuracy measurements",
+          "Wide measurement range",
+          "Data logging capability",
+          "PC connectivity"
+        ],
+        applications: ["Electronics Testing", "Electrical Maintenance", "R&D", "Education"],
+        certifications: ["ISO 9001:2015", "CE Marking", "RoHS Compliant"],
+        imageUrl: "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
+      }
+    ];
+
+    for (const product of sampleProducts) {
+      await this.createProduct(product);
+    }
+  }
+
+  // User methods
+  async getUser(id: number): Promise<User | undefined> {
+    return this.users.get(id);
+  }
+
+  async getUserByUsername(username: string): Promise<User | undefined> {
+    return Array.from(this.users.values()).find(user => user.username === username);
+  }
+
+  async createUser(insertUser: InsertUser): Promise<User> {
+    const id = this.currentUserId++;
+    const user: User = { 
+      ...insertUser, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.users.set(id, user);
+    return user;
+  }
+
+  // Product methods
+  async getAllProducts(category?: string): Promise<Product[]> {
+    const products = Array.from(this.products.values());
+    if (category) {
+      return products.filter(product => product.category === category);
+    }
+    return products;
+  }
+
+  async getProduct(id: number): Promise<Product | undefined> {
+    return this.products.get(id);
+  }
+
+  async createProduct(insertProduct: InsertProduct): Promise<Product> {
+    const id = this.currentProductId++;
+    const product: Product = { 
+      ...insertProduct, 
+      id, 
+      views: 0,
+      createdAt: new Date() 
+    };
+    this.products.set(id, product);
+    return product;
+  }
+
+  async updateProduct(id: number, updateData: Partial<InsertProduct>): Promise<Product | undefined> {
+    const product = this.products.get(id);
+    if (!product) return undefined;
+
+    const updatedProduct = { ...product, ...updateData };
+    this.products.set(id, updatedProduct);
+    return updatedProduct;
+  }
+
+  async deleteProduct(id: number): Promise<boolean> {
+    return this.products.delete(id);
+  }
+
+  async incrementProductViews(id: number): Promise<void> {
+    const product = this.products.get(id);
+    if (product) {
+      product.views += 1;
+      this.products.set(id, product);
+    }
+  }
+
+  // Quote methods
+  async getAllQuotes(): Promise<QuoteRequest[]> {
+    return Array.from(this.quotes.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getQuote(id: number): Promise<QuoteRequest | undefined> {
+    return this.quotes.get(id);
+  }
+
+  async createQuote(insertQuote: InsertQuoteRequest): Promise<QuoteRequest> {
+    const id = this.currentQuoteId++;
+    const quote: QuoteRequest = { 
+      ...insertQuote, 
+      id, 
+      status: 'New',
+      createdAt: new Date() 
+    };
+    this.quotes.set(id, quote);
+    return quote;
+  }
+
+  async updateQuoteStatus(id: number, status: 'New' | 'Contacted' | 'Closed'): Promise<QuoteRequest | undefined> {
+    const quote = this.quotes.get(id);
+    if (!quote) return undefined;
+
+    quote.status = status;
+    this.quotes.set(id, quote);
+    return quote;
+  }
+
+  // Contact message methods
+  async getAllMessages(): Promise<ContactMessage[]> {
+    return Array.from(this.messages.values()).sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  }
+
+  async getMessage(id: number): Promise<ContactMessage | undefined> {
+    return this.messages.get(id);
+  }
+
+  async createMessage(insertMessage: InsertContactMessage): Promise<ContactMessage> {
+    const id = this.currentMessageId++;
+    const message: ContactMessage = { 
+      ...insertMessage, 
+      id, 
+      replied: false,
+      createdAt: new Date() 
+    };
+    this.messages.set(id, message);
+    return message;
+  }
+
+  async markMessageReplied(id: number, replied: boolean): Promise<ContactMessage | undefined> {
+    const message = this.messages.get(id);
+    if (!message) return undefined;
+
+    message.replied = replied;
+    this.messages.set(id, message);
+    return message;
+  }
+
+  // Analytics methods
+  async getWebsiteViews(): Promise<number> {
+    return Array.from(this.viewData.values()).reduce((total, data) => total + data.count, 0);
+  }
+
+  async incrementWebsiteViews(ip?: string): Promise<void> {
+    const today = new Date().toISOString().split('T')[0];
+    let viewData = this.viewData.get(today);
+    
+    if (!viewData) {
+      viewData = {
+        id: this.currentViewId++,
+        date: today,
+        count: 0,
+        lastViewedIPs: []
+      };
+    }
+
+    // Simple IP-based rate limiting (one view per IP per day)
+    if (!ip || !viewData.lastViewedIPs.includes(ip)) {
+      viewData.count += 1;
+      if (ip) {
+        viewData.lastViewedIPs.push(ip);
+        // Keep only last 100 IPs to prevent memory issues
+        if (viewData.lastViewedIPs.length > 100) {
+          viewData.lastViewedIPs = viewData.lastViewedIPs.slice(-100);
+        }
+      }
+    }
+
+    this.viewData.set(today, viewData);
+  }
+
+  async getProductViews(): Promise<{ productId: number; views: number; productName: string }[]> {
+    return Array.from(this.products.values()).map(product => ({
+      productId: product.id,
+      views: product.views,
+      productName: product.name
+    }));
+  }
+}
+
+export const storage = new MemStorage();
