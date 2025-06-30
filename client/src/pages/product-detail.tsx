@@ -140,13 +140,25 @@ export default function ProductDetail() {
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Add to Quote
               </Button>
-              <Button 
-                variant="outline" 
-                className="border-2 border-maroon-500 text-maroon-500 px-6 py-3 hover:bg-maroon-500 hover:text-white transition-all flex items-center justify-center"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Download Datasheet
-              </Button>
+              {product.datasheetPdfUrl ? (
+                <Button 
+                  variant="outline" 
+                  className="border-2 border-maroon-500 text-maroon-500 px-6 py-3 hover:bg-maroon-500 hover:text-white transition-all flex items-center justify-center"
+                  onClick={() => window.open(product.datasheetPdfUrl, '_blank')}
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Download Datasheet
+                </Button>
+              ) : (
+                <Button 
+                  variant="outline" 
+                  className="border-2 border-gray-300 text-gray-400 px-6 py-3 cursor-not-allowed flex items-center justify-center"
+                  disabled
+                >
+                  <Download className="mr-2 h-4 w-4" />
+                  Datasheet Unavailable
+                </Button>
+              )}
             </div>
 
             {/* Quick Specs */}
@@ -196,6 +208,12 @@ export default function ProductDetail() {
                   className="px-6 py-4 text-sm font-medium data-[state=active]:bg-maroon-50 data-[state=active]:text-maroon-500 data-[state=active]:border-b-2 data-[state=active]:border-maroon-500"
                 >
                   Certifications
+                </TabsTrigger>
+                <TabsTrigger 
+                  value="technical-details" 
+                  className="px-6 py-4 text-sm font-medium data-[state=active]:bg-maroon-50 data-[state=active]:text-maroon-500 data-[state=active]:border-b-2 data-[state=active]:border-maroon-500"
+                >
+                  Technical Details
                 </TabsTrigger>
               </TabsList>
 
@@ -261,6 +279,46 @@ export default function ProductDetail() {
                       </div>
                     ))}
                   </div>
+                </TabsContent>
+
+                <TabsContent value="technical-details">
+                  <h3 className="font-semibold text-xl text-gray-900 mb-6">Technical Details</h3>
+                  {product.technicalDetails ? (
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      {product.technicalDetails.dimensions && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">Dimensions</h4>
+                          <p className="text-gray-600">{product.technicalDetails.dimensions}</p>
+                        </div>
+                      )}
+                      {product.technicalDetails.weight && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">Weight</h4>
+                          <p className="text-gray-600">{product.technicalDetails.weight}</p>
+                        </div>
+                      )}
+                      {product.technicalDetails.powerRequirements && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">Power Requirements</h4>
+                          <p className="text-gray-600">{product.technicalDetails.powerRequirements}</p>
+                        </div>
+                      )}
+                      {product.technicalDetails.operatingConditions && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">Operating Conditions</h4>
+                          <p className="text-gray-600">{product.technicalDetails.operatingConditions}</p>
+                        </div>
+                      )}
+                      {product.technicalDetails.warranty && (
+                        <div className="bg-gray-50 rounded-lg p-4">
+                          <h4 className="font-semibold text-gray-900 mb-2">Warranty</h4>
+                          <p className="text-gray-600">{product.technicalDetails.warranty}</p>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-gray-500">No additional technical details available.</p>
+                  )}
                 </TabsContent>
               </div>
             </Tabs>

@@ -91,8 +91,8 @@ export const quoteRequestSchema = z.object({
 export const insertQuoteRequestSchema = z.object({
   customerName: z.string().min(2).max(100),
   customerEmail: z.string().email(),
-  customerPhone: z.string().min(10).max(20),
-  customerLocation: z.string().min(1).max(200),
+  customerPhone: z.string().min(5).max(20),
+  customerLocation: z.string().optional(),
   products: z.array(z.object({
     productId: z.number(),
     name: z.string(),

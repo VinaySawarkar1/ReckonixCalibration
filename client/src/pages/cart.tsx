@@ -25,7 +25,22 @@ export default function Cart() {
   });
 
   const submitQuote = useMutation({
-    mutationFn: (data: any) => apiRequest("POST", "/api/quotes", data),
+    mutationFn: async (formData: any) => {
+      const requestData = {
+        customerName: formData.fullName,
+        customerEmail: formData.email,
+        customerPhone: formData.phone,
+        customerLocation: formData.company,
+        products: cartItems.map(item => ({
+          productId: item.product.id,
+          name: item.product.name,
+          quantity: item.quantity
+        })),
+        message: formData.additionalRequirements
+      };
+
+      return apiRequest("POST", "/api/quotes", requestData);
+    },
     onSuccess: () => {
       toast({
         title: "Quote Request Sent!",

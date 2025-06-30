@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -5,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
@@ -19,7 +21,8 @@ import {
   LogOut,
   Edit,
   Trash2,
-  Search
+  Search,
+  X
 } from "lucide-react";
 import { useAuth } from "../../context/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -87,6 +90,71 @@ export default function AdminDashboard() {
     queryKey: ["/api/analytics/product-views"],
   });
 
+  // Export functionality
+  const exportToCSV = (data: any[], filename: string) => {
+    if (data.length === 0) {
+      toast({
+        title: "No Data",
+        description: "No data available to export.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = Object.keys(data[0]);
+    const csvContent = [
+      headers.join(','),
+      ...data.map(row => 
+        headers.map(header => {
+          const value = row[header];
+          if (typeof value === 'object' && value !== null) {
+            return `"${JSON.stringify(value).replace(/"/g, '""')}"`;
+          }
+          return `"${String(value).replace(/"/g, '""')}"`;
+        }).join(',')
+      )
+    ].join('\n');
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', `${filename}.csv`);
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
+  const exportQuotes = () => {
+    const exportData = quotes.map(quote => ({
+      id: quote.id,
+      customerName: quote.customerName,
+      customerEmail: quote.customerEmail,
+      customerPhone: quote.customerPhone,
+      customerLocation: quote.customerLocation || '',
+      productsCount: quote.products.length,
+      productNames: quote.products.map(p => p.name).join('; '),
+      message: quote.message || '',
+      status: quote.status,
+      createdAt: new Date(quote.createdAt).toLocaleDateString()
+    }));
+    exportToCSV(exportData, 'quotes');
+  };
+
+  const exportMessages = () => {
+    const exportData = messages.map(message => ({
+      id: message.id,
+      name: message.name,
+      email: message.email,
+      phone: message.phone || '',
+      message: message.message,
+      replied: message.replied ? 'Yes' : 'No',
+      createdAt: new Date(message.createdAt).toLocaleDateString()
+    }));
+    exportToCSV(exportData, 'messages');
+  };
+
   // Update quote status mutation
   const updateQuoteStatus = useMutation({
     mutationFn: ({ id, status }: { id: number; status: string }) =>
@@ -133,28 +201,7 @@ export default function AdminDashboard() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       setShowAddProductDialog(false);
-      setNewProduct({
-        name: "",
-        category: "Calibration Systems",
-        shortDescription: "",
-        fullTechnicalInfo: "",
-        specifications: [{ key: "", value: "" }],
-        featuresBenefits: [""],
-        applications: [""],
-        certifications: [""],
-        imageUrl: "",
-        imageGallery: [],
-        catalogPdfUrl: "",
-        datasheetPdfUrl: "",
-        technicalDetails: {
-          dimensions: "",
-          weight: "",
-          powerRequirements: "",
-          operatingConditions: "",
-          warranty: "",
-          compliance: []
-        }
-      });
+      resetProductForm();
       toast({
         title: "Product Created",
         description: "Product has been created successfully.",
@@ -209,6 +256,31 @@ export default function AdminDashboard() {
     }
   });
 
+  const resetProductForm = () => {
+    setNewProduct({
+      name: "",
+      category: "Calibration Systems",
+      shortDescription: "",
+      fullTechnicalInfo: "",
+      specifications: [{ key: "", value: "" }],
+      featuresBenefits: [""],
+      applications: [""],
+      certifications: [""],
+      imageUrl: "",
+      imageGallery: [],
+      catalogPdfUrl: "",
+      datasheetPdfUrl: "",
+      technicalDetails: {
+        dimensions: "",
+        weight: "",
+        powerRequirements: "",
+        operatingConditions: "",
+        warranty: "",
+        compliance: []
+      }
+    });
+  };
+
   const handleLogout = () => {
     logout();
     setLocation("/admin/login");
@@ -221,6 +293,102 @@ export default function AdminDashboard() {
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
+
+  const addSpecification = (isEditing = false) => {
+    if (isEditing && editingProduct) {
+      setEditingProduct({
+        ...editingProduct,
+        specifications: [...editingProduct.specifications, { key: "", value: "" }]
+      });
+    } else {
+      setNewProduct({
+        ...newProduct,
+        specifications: [...newProduct.specifications, { key: "", value: "" }]
+      });
+    }
+  };
+
+  const removeSpecification = (index: number, isEditing = false) => {
+    if (isEditing && editingProduct) {
+      const specs = editingProduct.specifications.filter((_, i) => i !== index);
+      setEditingProduct({ ...editingProduct, specifications: specs });
+    } else {
+      const specs = newProduct.specifications.filter((_, i) => i !== index);
+      setNewProduct({ ...newProduct, specifications: specs });
+    }
+  };
+
+  const addFeature = (isEditing = false) => {
+    if (isEditing && editingProduct) {
+      setEditingProduct({
+        ...editingProduct,
+        featuresBenefits: [...editingProduct.featuresBenefits, ""]
+      });
+    } else {
+      setNewProduct({
+        ...newProduct,
+        featuresBenefits: [...newProduct.featuresBenefits, ""]
+      });
+    }
+  };
+
+  const removeFeature = (index: number, isEditing = false) => {
+    if (isEditing && editingProduct) {
+      const features = editingProduct.featuresBenefits.filter((_, i) => i !== index);
+      setEditingProduct({ ...editingProduct, featuresBenefits: features });
+    } else {
+      const features = newProduct.featuresBenefits.filter((_, i) => i !== index);
+      setNewProduct({ ...newProduct, featuresBenefits: features });
+    }
+  };
+
+  const addApplication = (isEditing = false) => {
+    if (isEditing && editingProduct) {
+      setEditingProduct({
+        ...editingProduct,
+        applications: [...editingProduct.applications, ""]
+      });
+    } else {
+      setNewProduct({
+        ...newProduct,
+        applications: [...newProduct.applications, ""]
+      });
+    }
+  };
+
+  const removeApplication = (index: number, isEditing = false) => {
+    if (isEditing && editingProduct) {
+      const apps = editingProduct.applications.filter((_, i) => i !== index);
+      setEditingProduct({ ...editingProduct, applications: apps });
+    } else {
+      const apps = newProduct.applications.filter((_, i) => i !== index);
+      setNewProduct({ ...newProduct, applications: apps });
+    }
+  };
+
+  const addCertification = (isEditing = false) => {
+    if (isEditing && editingProduct) {
+      setEditingProduct({
+        ...editingProduct,
+        certifications: [...editingProduct.certifications, ""]
+      });
+    } else {
+      setNewProduct({
+        ...newProduct,
+        certifications: [...newProduct.certifications, ""]
+      });
+    }
+  };
+
+  const removeCertification = (index: number, isEditing = false) => {
+    if (isEditing && editingProduct) {
+      const certs = editingProduct.certifications.filter((_, i) => i !== index);
+      setEditingProduct({ ...editingProduct, certifications: certs });
+    } else {
+      const certs = newProduct.certifications.filter((_, i) => i !== index);
+      setNewProduct({ ...newProduct, certifications: certs });
+    }
+  };
 
   const handleAddProduct = () => {
     const productData = {
@@ -269,6 +437,327 @@ export default function AdminDashboard() {
 
   const newQuotes = quotes.filter(q => q.status === "New").length;
   const newMessages = messages.filter(m => !m.replied).length;
+
+  const ProductForm = ({ product, isEditing = false }: { product: any; isEditing?: boolean }) => (
+    <div className="space-y-6 max-h-96 overflow-y-auto">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Product Name</label>
+          <Input
+            value={product.name}
+            onChange={(e) => {
+              if (isEditing) {
+                setEditingProduct({ ...product, name: e.target.value });
+              } else {
+                setNewProduct({ ...product, name: e.target.value });
+              }
+            }}
+            placeholder="Enter product name"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Category</label>
+          <Select 
+            value={product.category} 
+            onValueChange={(value: any) => {
+              if (isEditing) {
+                setEditingProduct({ ...product, category: value });
+              } else {
+                setNewProduct({ ...product, category: value });
+              }
+            }}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
+              <SelectItem value="Testing Systems">Testing Systems</SelectItem>
+              <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Description</label>
+        <Textarea
+          value={product.shortDescription}
+          onChange={(e) => {
+            if (isEditing) {
+              setEditingProduct({ ...product, shortDescription: e.target.value });
+            } else {
+              setNewProduct({ ...product, shortDescription: e.target.value });
+            }
+          }}
+          placeholder="Brief product description"
+          rows={3}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-1">Full Technical Information</label>
+        <Textarea
+          value={product.fullTechnicalInfo}
+          onChange={(e) => {
+            if (isEditing) {
+              setEditingProduct({ ...product, fullTechnicalInfo: e.target.value });
+            } else {
+              setNewProduct({ ...product, fullTechnicalInfo: e.target.value });
+            }
+          }}
+          placeholder="Detailed technical information"
+          rows={4}
+        />
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Technical Specifications</label>
+        {product.specifications.map((spec: any, index: number) => (
+          <div key={index} className="flex gap-2 mb-2">
+            <Input
+              placeholder="Parameter"
+              value={spec.key}
+              onChange={(e) => {
+                const specs = [...product.specifications];
+                specs[index] = { ...specs[index], key: e.target.value };
+                if (isEditing) {
+                  setEditingProduct({ ...product, specifications: specs });
+                } else {
+                  setNewProduct({ ...product, specifications: specs });
+                }
+              }}
+            />
+            <Input
+              placeholder="Value"
+              value={spec.value}
+              onChange={(e) => {
+                const specs = [...product.specifications];
+                specs[index] = { ...specs[index], value: e.target.value };
+                if (isEditing) {
+                  setEditingProduct({ ...product, specifications: specs });
+                } else {
+                  setNewProduct({ ...product, specifications: specs });
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => removeSpecification(index, isEditing)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addSpecification(isEditing)}
+        >
+          Add Specification
+        </Button>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Features & Benefits</label>
+        {product.featuresBenefits.map((feature: string, index: number) => (
+          <div key={index} className="flex gap-2 mb-2">
+            <Input
+              placeholder="Feature or benefit"
+              value={feature}
+              onChange={(e) => {
+                const features = [...product.featuresBenefits];
+                features[index] = e.target.value;
+                if (isEditing) {
+                  setEditingProduct({ ...product, featuresBenefits: features });
+                } else {
+                  setNewProduct({ ...product, featuresBenefits: features });
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => removeFeature(index, isEditing)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addFeature(isEditing)}
+        >
+          Add Feature
+        </Button>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Applications</label>
+        {product.applications.map((app: string, index: number) => (
+          <div key={index} className="flex gap-2 mb-2">
+            <Input
+              placeholder="Application area"
+              value={app}
+              onChange={(e) => {
+                const apps = [...product.applications];
+                apps[index] = e.target.value;
+                if (isEditing) {
+                  setEditingProduct({ ...product, applications: apps });
+                } else {
+                  setNewProduct({ ...product, applications: apps });
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => removeApplication(index, isEditing)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addApplication(isEditing)}
+        >
+          Add Application
+        </Button>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Certifications</label>
+        {product.certifications.map((cert: string, index: number) => (
+          <div key={index} className="flex gap-2 mb-2">
+            <Input
+              placeholder="Certification"
+              value={cert}
+              onChange={(e) => {
+                const certs = [...product.certifications];
+                certs[index] = e.target.value;
+                if (isEditing) {
+                  setEditingProduct({ ...product, certifications: certs });
+                } else {
+                  setNewProduct({ ...product, certifications: certs });
+                }
+              }}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => removeCertification(index, isEditing)}
+            >
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          onClick={() => addCertification(isEditing)}
+        >
+          Add Certification
+        </Button>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label className="block text-sm font-medium mb-1">Image URL</label>
+          <Input
+            value={product.imageUrl}
+            onChange={(e) => {
+              if (isEditing) {
+                setEditingProduct({ ...product, imageUrl: e.target.value });
+              } else {
+                setNewProduct({ ...product, imageUrl: e.target.value });
+              }
+            }}
+            placeholder="https://example.com/image.jpg"
+          />
+        </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Datasheet PDF URL</label>
+          <Input
+            value={product.datasheetPdfUrl}
+            onChange={(e) => {
+              if (isEditing) {
+                setEditingProduct({ ...product, datasheetPdfUrl: e.target.value });
+              } else {
+                setNewProduct({ ...product, datasheetPdfUrl: e.target.value });
+              }
+            }}
+            placeholder="https://example.com/datasheet.pdf"
+          />
+        </div>
+      </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Technical Details</label>
+        <div className="grid grid-cols-2 gap-2">
+          <Input
+            placeholder="Dimensions"
+            value={product.technicalDetails?.dimensions || ""}
+            onChange={(e) => {
+              const details = { ...product.technicalDetails, dimensions: e.target.value };
+              if (isEditing) {
+                setEditingProduct({ ...product, technicalDetails: details });
+              } else {
+                setNewProduct({ ...product, technicalDetails: details });
+              }
+            }}
+          />
+          <Input
+            placeholder="Weight"
+            value={product.technicalDetails?.weight || ""}
+            onChange={(e) => {
+              const details = { ...product.technicalDetails, weight: e.target.value };
+              if (isEditing) {
+                setEditingProduct({ ...product, technicalDetails: details });
+              } else {
+                setNewProduct({ ...product, technicalDetails: details });
+              }
+            }}
+          />
+          <Input
+            placeholder="Power Requirements"
+            value={product.technicalDetails?.powerRequirements || ""}
+            onChange={(e) => {
+              const details = { ...product.technicalDetails, powerRequirements: e.target.value };
+              if (isEditing) {
+                setEditingProduct({ ...product, technicalDetails: details });
+              } else {
+                setNewProduct({ ...product, technicalDetails: details });
+              }
+            }}
+          />
+          <Input
+            placeholder="Operating Conditions"
+            value={product.technicalDetails?.operatingConditions || ""}
+            onChange={(e) => {
+              const details = { ...product.technicalDetails, operatingConditions: e.target.value };
+              if (isEditing) {
+                setEditingProduct({ ...product, technicalDetails: details });
+              } else {
+                setNewProduct({ ...product, technicalDetails: details });
+              }
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -422,7 +911,7 @@ export default function AdminDashboard() {
                 onClick={() => setShowAddProductDialog(true)}
               >
                 <Plus className="mr-2 h-4 w-4" />
-                Add New Product
+                Add Product
               </Button>
             </div>
 
@@ -530,95 +1019,17 @@ export default function AdminDashboard() {
             {/* Add Product Dialog */}
             {showAddProductDialog && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-                  <h3 className="text-lg font-semibold mb-4">Add New Product</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Product Name</label>
-                      <Input
-                        value={newProduct.name}
-                        onChange={(e) => setNewProduct({ ...newProduct, name: e.target.value })}
-                        placeholder="Enter product name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Category</label>
-                      <Select 
-                        value={newProduct.category} 
-                        onValueChange={(value: any) => setNewProduct({ ...newProduct, category: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
-                          <SelectItem value="Testing Systems">Testing Systems</SelectItem>
-                          <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Short Description</label>
-                      <Input
-                        value={newProduct.shortDescription}
-                        onChange={(e) => setNewProduct({ ...newProduct, shortDescription: e.target.value })}
-                        placeholder="Brief product description"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Image URL</label>
-                      <Input
-                        value={newProduct.imageUrl}
-                        onChange={(e) => setNewProduct({ ...newProduct, imageUrl: e.target.value })}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Datasheet PDF URL</label>
-                      <Input
-                        value={newProduct.datasheetPdfUrl}
-                        onChange={(e) => setNewProduct({ ...newProduct, datasheetPdfUrl: e.target.value })}
-                        placeholder="https://example.com/datasheet.pdf"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Technical Details</label>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Input
-                          placeholder="Dimensions"
-                          value={newProduct.technicalDetails.dimensions}
-                          onChange={(e) => setNewProduct({
-                            ...newProduct,
-                            technicalDetails: { ...newProduct.technicalDetails, dimensions: e.target.value }
-                          })}
-                        />
-                        <Input
-                          placeholder="Weight"
-                          value={newProduct.technicalDetails.weight}
-                          onChange={(e) => setNewProduct({
-                            ...newProduct,
-                            technicalDetails: { ...newProduct.technicalDetails, weight: e.target.value }
-                          })}
-                        />
-                        <Input
-                          placeholder="Power Requirements"
-                          value={newProduct.technicalDetails.powerRequirements}
-                          onChange={(e) => setNewProduct({
-                            ...newProduct,
-                            technicalDetails: { ...newProduct.technicalDetails, powerRequirements: e.target.value }
-                          })}
-                        />
-                        <Input
-                          placeholder="Operating Conditions"
-                          value={newProduct.technicalDetails.operatingConditions}
-                          onChange={(e) => setNewProduct({
-                            ...newProduct,
-                            technicalDetails: { ...newProduct.technicalDetails, operatingConditions: e.target.value }
-                          })}
-                        />
-                      </div>
-                    </div>
+                <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Add Product</h3>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowAddProductDialog(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
+                  <ProductForm product={newProduct} />
                   <div className="flex justify-end space-x-2 mt-6">
                     <Button variant="outline" onClick={() => setShowAddProductDialog(false)}>
                       Cancel
@@ -638,50 +1049,17 @@ export default function AdminDashboard() {
             {/* Edit Product Dialog */}
             {editingProduct && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-                  <h3 className="text-lg font-semibold mb-4">Edit Product</h3>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Product Name</label>
-                      <Input
-                        value={editingProduct.name}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, name: e.target.value })}
-                        placeholder="Enter product name"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Category</label>
-                      <Select 
-                        value={editingProduct.category} 
-                        onValueChange={(value: any) => setEditingProduct({ ...editingProduct, category: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
-                          <SelectItem value="Testing Systems">Testing Systems</SelectItem>
-                          <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Short Description</label>
-                      <Input
-                        value={editingProduct.shortDescription}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, shortDescription: e.target.value })}
-                        placeholder="Brief product description"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Image URL</label>
-                      <Input
-                        value={editingProduct.imageUrl}
-                        onChange={(e) => setEditingProduct({ ...editingProduct, imageUrl: e.target.value })}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
+                <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Edit Product</h3>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setEditingProduct(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
                   </div>
+                  <ProductForm product={editingProduct} isEditing={true} />
                   <div className="flex justify-end space-x-2 mt-6">
                     <Button variant="outline" onClick={() => setEditingProduct(null)}>
                       Cancel
@@ -702,7 +1080,10 @@ export default function AdminDashboard() {
           <TabsContent value="quotes" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">Quote Requests</h2>
-              <Button variant="outline" className="bg-green-500 text-white hover:bg-green-600">
+              <Button 
+                onClick={exportQuotes}
+                className="bg-green-500 text-white hover:bg-green-600"
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Export to Excel
               </Button>
@@ -783,7 +1164,10 @@ export default function AdminDashboard() {
           <TabsContent value="messages" className="space-y-6">
             <div className="flex justify-between items-center">
               <h2 className="text-2xl font-bold text-gray-900">Contact Messages</h2>
-              <Button variant="outline" className="bg-green-500 text-white hover:bg-green-600">
+              <Button 
+                onClick={exportMessages}
+                className="bg-green-500 text-white hover:bg-green-600"
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Export Messages
               </Button>
