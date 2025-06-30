@@ -1,0 +1,314 @@
+## Project Title: Reckonix - Calibration, Testing & Measuring Systems (MERN Stack)
+
+**Company Tagline:** "Test. Measure. Calibrator"
+**Brand Color:** Maroon (Primary: #800000, Secondary: #A0522D for accents)
+**Font for Logo/Headings:** Cinzel Decorative
+**Visuals:** Utilize background graphics, subtle animated sections, and embedded short animated videos for key products.
+
+**Core Technologies:** MERN Stack (MongoDB, Express.js, React.js, Node.js)
+**Styling:** Tailwind CSS (fully responsive)
+**Animations:** Framer Motion (for dynamic elements and counters)
+**Routing:** React Router DOM
+**API Requests:** Axios
+**Database ORM:** Mongoose
+**File Uploads:** Multer
+**Email Sending:** Nodemailer
+**Authentication:** JWT (JSON Web Tokens) for Admin
+
+---
+
+### **Overall Project Structure (Suggested):**
+
+/reckonix-website
+├── client (React Frontend)
+│   ├── public
+│   ├── src
+│   │   ├── assets (images, videos, PDFs)
+│   │   ├── components
+│   │   ├── context (AuthContext, CartContext)
+│   │   ├── hooks
+│   │   ├── pages
+│   │   ├── services (API calls)
+│   │   ├── styles (Tailwind config, custom CSS)
+│   │   └── App.js
+│   └── package.json
+├── server (Node.js/Express Backend)
+│   ├── config (DB connection, JWT secrets)
+│   ├── controllers
+│   ├── middleware (auth, error handling)
+│   ├── models (Mongoose schemas)
+│   ├── routes
+│   ├── uploads (Multer destination)
+│   ├── utils (Nodemailer, validators)
+│   ├── server.js
+│   └── package.json
+├── .env.example
+├── README.md
+└── package.json (root, for concurrent run, if desired)
+
+
+---
+
+### **I. Backend (Node.js & Express.js)**
+
+**Dependencies:** `express`, `mongoose`, `dotenv`, `cors`, `jsonwebtoken`, `bcryptjs`, `multer`, `nodemailer`, `express-validator` (or `joi`), `morgan` (for logging views).
+
+**1. MongoDB Schema Design (using Mongoose):**
+
+* **User Schema (for Admin):**
+    * `username: String (unique, required)`
+    * `password: String (hashed, required)`
+    * `role: String (e.g., 'admin', default: 'admin')`
+* **Product Schema:**
+    * `name: String (required, unique)`
+    * `category: String (enum: ['Calibration Systems', 'Testing Systems', 'Measuring Instruments'], required)`
+    * `shortDescription: String (required, 2 lines max)`
+    * `fullTechnicalInfo: String`
+    * `specifications: [{ key: String, value: String }]` (Array of objects for tabbed section)
+    * `featuresBenefits: [String]` (Array of strings for tabbed section)
+    * `applications: [String]` (Array of strings for tabbed section)
+    * `certifications: [String]` (Array of strings for tabbed section)
+    * `imageUrl: String` (Path to uploaded image)
+    * `catalogPdfUrl: String` (Path to uploaded product-specific PDF)
+    * `views: { type: Number, default: 0 }` (For product view analytics)
+* **QuoteRequest Schema:**
+    * `customerName: String (required)`
+    * `customerEmail: String (required)`
+    * `customerPhone: String (required)`
+    * `customerLocation: String`
+    * `products: [{ productId: ObjectId, name: String, quantity: Number }]`
+    * `message: String`
+    * `status: { type: String, enum: ['New', 'Contacted', 'Closed'], default: 'New' }`
+    * `createdAt: Date (default: now)`
+* **ContactMessage Schema:**
+    * `name: String (required)`
+    * `email: String (required)`
+    * `phone: String`
+    * `message: String (required)`
+    * `replied: { type: Boolean, default: false }`
+    * `createdAt: Date (default: now)`
+* **ViewData Schema (for global website views):**
+    * `date: Date (unique, indexed)`
+    * `count: Number (default: 0)`
+    * `lastViewedIPs: [String]` (Optional: to prevent rapid increment by same user, can clear daily)
+
+**2. RESTful API Endpoints:**
+
+* **Authentication (`/api/auth`):**
+    * `POST /register` (Admin registration - for initial setup, disable after first admin)
+    * `POST /login` (Admin login, returns JWT token)
+* **Products (`/api/products`):**
+    * `GET /`: Get all products (with optional `category` query parameter). Public access.
+    * `GET /:id`: Get single product by ID. Increments product view count. Public access.
+    * `POST /`: Add new product (Admin only, requires JWT). Handles Multer for image and PDF upload.
+    * `PUT /:id`: Update product by ID (Admin only, requires JWT). Handles Multer for image/PDF updates.
+    * `DELETE /:id`: Delete product by ID (Admin only, requires JWT). Deletes associated files.
+* **Quotes (`/api/quotes`):**
+    * `POST /`: Submit new quote request. Public access. Triggers Nodemailer email notification.
+    * `GET /`: Get all quote requests (Admin only, requires JWT).
+    * `GET /export`: Export quote data to CSV/Excel (Admin only, requires JWT).
+    * `PUT /:id/status`: Update quote status (e.g., 'New' to 'Contacted') (Admin only, requires JWT).
+* **Messages (`/api/messages`):**
+    * `POST /`: Submit new contact message. Public access. Triggers Nodemailer email notification.
+    * `GET /`: Get all contact messages (Admin only, requires JWT).
+    * `GET /export`: Export contact messages to CSV/Excel (Admin only, requires JWT).
+    * `PUT /:id/replied`: Mark message as replied (Admin only, requires JWT).
+* **Analytics (`/api/analytics`):**
+    * `GET /website-views`: Get total website view count (Admin only, requires JWT). Increments global view count on root access.
+    * `GET /product-views`: Get product view counts (Admin only, requires JWT).
+* **Catalog (`/api/catalog`):**
+    * `GET /main-catalog`: Download main company catalog PDF. Public access.
+    * `POST /main-catalog`: Upload/Update main company catalog PDF (Admin only, requires JWT).
+
+**3. Middleware:**
+
+* **Error Handling Middleware:** Catch errors and send appropriate JSON responses.
+* **Authentication Middleware:** Verify JWT token for protected routes.
+* **Input Validation Middleware:** Use `express-validator` or `joi` for all API endpoints receiving user input (e.g., product creation, quote requests, contact form).
+* **Multer Configuration:**
+    * Configure disk storage for product images, product PDFs, and main catalog PDF in the `server/uploads` directory.
+    * Set file size limits and allowed mimetypes for security.
+* **View Counter Middleware:** A middleware to increment the global website view count for the homepage and individual product view counts for product detail pages.
+
+**4. Utilities:**
+
+* **Nodemailer:** Functionality to send emails for quote requests and contact form submissions to a predefined admin email address. Use environment variables for SMTP configuration.
+* **JWT Helper:** Functions for generating and verifying tokens.
+* **CSV/Excel Export:** Logic to convert MongoDB data (quotes, messages) into CSV or Excel format.
+
+**5. Security Considerations:**
+
+* Store sensitive information (JWT secret, MongoDB URI, email credentials) in `.env` files.
+* Implement `bcryptjs` for password hashing.
+* Set up CORS policies to allow requests only from your frontend domain.
+* Sanitize and validate all user inputs to prevent XSS, SQL injection (though Mongoose helps with NoSQL injection), etc.
+* Secure `uploads` directory.
+* Implement rate limiting on login and form submission endpoints (if possible with Replit AI's capabilities).
+
+---
+
+### **II. Frontend (React.js)**
+
+**Dependencies:** `react`, `react-dom`, `react-router-dom`, `axios`, `tailwindcss`, `framer-motion`, `react-icons` (e.g., Font Awesome or Tabler Icons).
+
+**1. Global State Management:**
+
+* **Context API:**
+    * `AuthContext`: Manages admin authentication state (user, token, login/logout functions).
+    * `CartContext`: Manages products added to the quote cart.
+* **Alternatively, Redux Toolkit:** If Replit AI prefers, Redux for more complex state, though Context API is simpler for this scope.
+
+**2. Tailwind CSS Configuration:**
+
+* Configure `tailwind.config.js` to include the `Cinzel Decorative` font for headings and primary/secondary maroon colors (`#800000`, `#A0522D`).
+* Ensure full responsiveness using Tailwind's utility classes.
+
+**3. Components (Reusable UI elements):**
+
+* `Header` (Logo, Navigation links)
+* `Footer`
+* `ProductCard`
+* `CustomerLogo`
+* `IconCard` (for "Why Choose Us" section)
+* `AnimatedCounter`
+* `Button`
+* `InputField` (for forms)
+* `Modal` (for product PDF views, etc.)
+* `Spinner/LoadingIndicator`
+
+**4. Pages:**
+
+* **Home Page (`/`):**
+    * **Hero Banner:**
+        * Large text: "We are manufacturers of Calibration Systems, Testing Systems, and Measuring Systems."
+        * Maroon-themed gradient background with subtle, animated abstract graphics (Framer Motion or CSS animations).
+        * Embedded short, looping animated videos for 2-3 key product categories (e.g., tiny clips showcasing a calibration process, a testing machine, a measuring device). Placeholder videos or a static image with an animated overlay.
+    * **About Reckonix Section:**
+        * Concise text describing the company's core business.
+        * Compelling industrial image.
+    * **Featured Products:**
+        * Three distinct rows: "Calibration Systems," "Testing Systems," "Measuring Instruments."
+        * Each row displays 4 `ProductCard` components.
+        * Each `ProductCard` shows: product image, 2-line description, category badge, "View More" button (links to `/products/:id`).
+        * "View More" button at the top of each row (links to `/products?category=...`).
+    * **Trusted By Section:**
+        * "Trusted By" heading.
+        * Container with floating customer logos (at least 10-15) that scroll continuously from right to left using CSS animation. On hover, animation pauses.
+    * **Why Choose Us:**
+        * Heading: "Why Choose Us?"
+        * Grid of `IconCard` components with points: Quality, Innovation, Global Reach, Fast Support (use relevant icons).
+    * **Company Stats:**
+        * Heading: "Our Achievements" (or similar).
+        * Animated counters (using Framer Motion `useInView` and `animate` for number transitions):
+            * Calibration Labs Setup (e.g., 500+)
+            * Countries Served (e.g., 25+)
+            * Customer Count (e.g., 1000+)
+            * Team Size (e.g., 150+)
+    * **Download Catalog:**
+        * Prominent button: "Download Main Catalog" (links to `/api/catalog/main-catalog`).
+    * **Footer:**
+        * Company logo and brief 3-4 line description.
+        * Quick Links (Home, Products, About Us, Contact Us, Customers).
+        * Social Media Icons (LinkedIn, Facebook, Twitter, YouTube - placeholder links).
+        * Two Addresses: Corporate Office, Manufacturing Unit (with full details).
+        * Google Maps embed for both addresses with "Get Directions" buttons.
+
+* **Products Page (`/products`):**
+    * Search bar (React-controlled state, filters displayed products).
+    * Category filter buttons: "All," "Calibration Systems," "Testing Systems," "Measuring Instruments." (Updates displayed products).
+    * Products displayed in a responsive grid, grouped by category by default.
+    * Each `ProductCard` includes: product image, 2-line description, category tag, "View Details" button (links to `/products/:id`), "Add to Cart" button (adds to `CartContext`).
+
+* **Product Detail Page (`/products/:id`):**
+    * Fetches product details using `axios` based on `id` from URL params.
+    * Displays large product image.
+    * Full technical information.
+    * Tabbed sections (using React state for active tab):
+        * Technical Specifications (displays `specifications` from product data).
+        * Features & Benefits (displays `featuresBenefits`).
+        * Applications (displays `applications`).
+        * Certifications (displays `certifications`).
+        * Download Product Catalog PDF (button to download `catalogPdfUrl` specific to this product).
+    * "Add to Cart" button.
+
+* **About Us Page (`/about`):**
+    * Company Description (detailed text).
+    * Vision & Mission (clear statements).
+    * Manufacturing Unit info (address, photo placeholder or embedded map).
+    * Corporate Office info (address).
+    * Team Section (Grid of team member cards: Photo, Name, Role - placeholder data).
+
+* **Contact Us Page (`/contact`):**
+    * Contact Info Section: Phone, Email, Two Addresses.
+    * Embedded interactive Google Map (centered on a general India location, users can get directions).
+    * Contact Form:
+        * Fields: Name, Email, Phone, Message.
+        * Input validation (client-side).
+        * "Send Message" button.
+        * On submit: Sends data to backend API (`/api/messages`), displays success/error message.
+
+* **Customers Page (`/customers`):**
+    * Grid of customer logos (at least 15-20 placeholder logos).
+    * Each logo card displays Name, Location on hover or below.
+    * Apply image hover effect or border glow for a premium look.
+
+* **Cart Page with Quote Request (`/cart`):**
+    * Displays products added to cart from `CartContext`.
+    * For each item: Product image, name, quantity control (buttons to increment/decrement), remove button.
+    * Summary of items.
+    * **Quote Request Form:**
+        * Fields: Customer Name, Phone, Email, Location.
+        * Input validation.
+        * "Get Quote" button.
+        * On submit: Sends cart details and customer info to backend API (`/api/quotes`), clears cart, displays success message.
+
+* **Admin Page (Hidden & Protected) (`/admin/reckonix-private`):**
+    * **Login Page:**
+        * Admin username and password input.
+        * Submits to `/api/auth/login`.
+        * On successful login, JWT token stored securely (e.g., in HttpOnly cookie or Local Storage if HttpOnly is complex for Replit AI, but mention the preference for HttpOnly for security).
+        * Redirects to Admin Dashboard.
+    * **Protected Routes:** All admin sub-routes should be protected by checking for a valid JWT.
+    * **Dashboard:**
+        * Display Website View Count (fetched from `/api/analytics/website-views`).
+        * List of recent Quote Requests (brief summary, link to full details or quick view).
+        * List of recent Messages from Contact Us (brief summary, link to full details or quick view).
+        * Product View Count analytics (List top 5-10 most viewed products).
+    * **Manage Products Section:**
+        * Table/List of all products.
+        * "Add New Product" button (opens form).
+        * Edit/Delete buttons for each product.
+        * **Add/Edit Product Form:**
+            * Fields: Name, Category (dropdown), Short Description, Full Technical Info, Specifications (dynamic add/remove fields for key-value pairs), Features & Benefits (dynamic add/remove fields), Applications (dynamic add/remove fields), Certifications (dynamic add/remove fields).
+            * File input for Product Image (allows upload).
+            * File input for Product-specific Catalog PDF (allows upload).
+            * Displays current image/PDF if editing.
+            * Submits data to `/api/products` (POST for add, PUT for edit).
+    * **Export Features:**
+        * Button: "Export Quote Data to Excel" (triggers `GET /api/quotes/export`).
+        * Button: "Export Contact Messages to Excel" (triggers `GET /api/messages/export`).
+    * **Upload Zone:**
+        * Area to upload/update the Main Company Catalog PDF (visible in Home/Products page).
+        * Input for PDF file.
+        * "Upload Catalog" button (submits to `/api/catalog/main-catalog`).
+
+---
+
+### **III. Deployment & Optimization:**
+
+* **Environment Variables:** Clearly separate environment variables for development and production (e.g., `MONGODB_URI`, `JWT_SECRET`, `EMAIL_USER`, `EMAIL_PASS`, `ADMIN_EMAIL_RECEIVER`, `CLIENT_URL`).
+* **SEO Optimization:**
+    * Use semantic HTML5 elements.
+    * Implement meta tags (title, description, keywords) for each page (dynamic titles where appropriate).
+    * Ensure image `alt` tags.
+    * Fast loading times (e.g., optimized images, lazy loading if Replit AI supports easily).
+* **Responsiveness:**
+    * Utilize Tailwind's responsive prefixes (e.g., `sm:`, `md:`, `lg:`) to ensure adaptability across all screen sizes.
+    * Flexbox and Grid for layout.
+* **Animations:** Implement Framer Motion for smooth transitions, hero banner animations, and animated counters.
+
+---
+
+**Crucial Instruction for Replit AI:**
+
+"Develop the complete MERN stack application adhering to the detailed specifications ab
