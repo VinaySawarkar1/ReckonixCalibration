@@ -25,21 +25,8 @@ export default function Cart() {
   });
 
   const submitQuote = useMutation({
-    mutationFn: async (formData: any) => {
-      const requestData = {
-        customerName: formData.fullName,
-        customerEmail: formData.email,
-        customerPhone: formData.phone,
-        customerLocation: formData.company,
-        products: cartItems.map(item => ({
-          productId: item.product.id,
-          name: item.product.name,
-          quantity: item.quantity
-        })),
-        message: formData.additionalRequirements
-      };
-
-      return apiRequest("POST", "/api/quotes", requestData);
+    mutationFn: async (quoteData: any) => {
+      return apiRequest("POST", "/api/quotes", quoteData);
     },
     onSuccess: () => {
       toast({
@@ -83,7 +70,7 @@ export default function Cart() {
       customerLocation: customerInfo.company,
       message: customerInfo.message,
       products: cartItems.map((item) => ({
-        id: item.product.id,
+        productId: item.product.id,
         name: item.product.name,
         quantity: item.quantity,
       })),

@@ -68,7 +68,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const product = await storage.createProduct(productData);
       res.status(201).json(product);
     } catch (error) {
-      res.status(400).json({ message: "Invalid product data" });
+      console.error("Product creation error:", error);
+      res.status(400).json({ 
+        message: "Invalid product data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 
@@ -123,7 +127,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       res.status(201).json({ message: "Quote request submitted successfully", id: quote.id });
     } catch (error) {
-      res.status(400).json({ message: "Invalid quote request data" });
+      console.error("Quote creation error:", error);
+      res.status(400).json({ 
+        message: "Invalid quote request data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

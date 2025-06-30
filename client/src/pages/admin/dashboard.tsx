@@ -396,7 +396,17 @@ export default function AdminDashboard() {
       specifications: newProduct.specifications.filter(s => s.key && s.value),
       featuresBenefits: newProduct.featuresBenefits.filter(f => f.trim()),
       applications: newProduct.applications.filter(a => a.trim()),
-      certifications: newProduct.certifications.filter(c => c.trim())
+      certifications: newProduct.certifications.filter(c => c.trim()),
+      catalogPdfUrl: newProduct.catalogPdfUrl || "",
+      datasheetPdfUrl: newProduct.datasheetPdfUrl || "",
+      technicalDetails: newProduct.technicalDetails || {
+        dimensions: "",
+        weight: "",
+        powerRequirements: "",
+        operatingConditions: "",
+        warranty: "",
+        compliance: []
+      }
     };
     createProduct.mutate(productData);
   };
@@ -412,7 +422,17 @@ export default function AdminDashboard() {
         specifications: editingProduct.specifications.filter((s: any) => s.key && s.value),
         featuresBenefits: editingProduct.featuresBenefits.filter((f: string) => f.trim()),
         applications: editingProduct.applications.filter((a: string) => a.trim()),
-        certifications: editingProduct.certifications.filter((c: string) => c.trim())
+        certifications: editingProduct.certifications.filter((c: string) => c.trim()),
+        catalogPdfUrl: editingProduct.catalogPdfUrl || "",
+        datasheetPdfUrl: editingProduct.datasheetPdfUrl || "",
+        technicalDetails: editingProduct.technicalDetails || {
+          dimensions: "",
+          weight: "",
+          powerRequirements: "",
+          operatingConditions: "",
+          warranty: "",
+          compliance: []
+        }
       };
       updateProduct.mutate({ id: editingProduct.id, data: productData });
     }

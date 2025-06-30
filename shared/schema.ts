@@ -48,19 +48,19 @@ export const productSchema = z.object({
 export const insertProductSchema = z.object({
   name: z.string().min(1).max(200),
   category: z.enum(['Calibration Systems', 'Testing Systems', 'Measuring Instruments']),
-  shortDescription: z.string().min(10).max(500),
-  fullTechnicalInfo: z.string().min(50),
+  shortDescription: z.string().min(1).max(500),
+  fullTechnicalInfo: z.string().min(1),
   specifications: z.array(z.object({
     key: z.string(),
     value: z.string()
-  })),
-  featuresBenefits: z.array(z.string()),
-  applications: z.array(z.string()),
-  certifications: z.array(z.string()),
-  imageUrl: z.string().url(),
+  })).default([]),
+  featuresBenefits: z.array(z.string()).default([]),
+  applications: z.array(z.string()).default([]),
+  certifications: z.array(z.string()).default([]),
+  imageUrl: z.string().min(1),
   imageGallery: z.array(z.string()).default([]),
-  catalogPdfUrl: z.string().url().optional(),
-  datasheetPdfUrl: z.string().url().optional(),
+  catalogPdfUrl: z.string().optional().or(z.literal("")),
+  datasheetPdfUrl: z.string().optional().or(z.literal("")),
   technicalDetails: z.object({
     dimensions: z.string().optional(),
     weight: z.string().optional(),
