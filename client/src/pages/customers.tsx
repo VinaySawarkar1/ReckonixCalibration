@@ -30,9 +30,7 @@ export default function Customers() {
     description: `Leading ${industry.toLowerCase()} companies trust our precision instruments`,
     icon: industryIcons[industry] || "🏭",
     customers: customersByIndustry[industry]
-  })); "🔬"
-    }
-  ];
+  }));
 
   
 
