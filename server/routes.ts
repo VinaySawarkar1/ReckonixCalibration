@@ -5,6 +5,8 @@ import {
   insertProductSchema, 
   insertQuoteRequestSchema, 
   insertContactMessageSchema,
+  insertCompanyEventSchema,
+  insertMainCatalogSchema,
   loginSchema
 } from "@shared/schema";
 
@@ -243,6 +245,95 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Company Events routes
+  app.get("/api/events", async (req: Request, res: Response) => {
+    try {
+      const events = await storage.getAllEvents();
+      res.json(events);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch events" });
+    }
+  });
+
+  app.get("/api/events/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const event = await storage.getEvent(id);
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+      
+      res.json(event);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch event" });
+    }
+  });
+
+  app.post("/api/events", async (req: Request, res: Response) => {
+    try {
+      // In production, verify JWT token here
+      const eventData = insertCompanyEventSchema.parse({
+        ...req.body,
+        eventDate: new Date(req.body.eventDate)
+      });
+      const event = await storage.createEvent(eventData);
+      res.status(201).json(event);
+    } catch (error) {
+      console.error("Event creation error:", error);
+      res.status(400).json({ 
+        message: "Invalid event data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.put("/api/events/:id", async (req: Request, res: Response) => {
+    try {
+      // In production, verify JWT token here
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const eventData = insertCompanyEventSchema.partial().parse({
+        ...req.body,
+        eventDate: req.body.eventDate ? new Date(req.body.eventDate) : undefined
+      });
+      const event = await storage.updateEvent(id, eventData);
+      
+      if (!event) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      res.json(event);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid event data" });
+    }
+  });
+
+  app.delete("/api/events/:id", async (req: Request, res: Response) => {
+    try {
+      // In production, verify JWT token here
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid event ID" });
+      }
+
+      const deleted = await storage.deleteEvent(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Event not found" });
+      }
+
+      res.json({ message: "Event deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete event" });
+    }
+  });
+
   // Catalog routes
   app.get("/api/catalog/main-catalog", async (req: Request, res: Response) => {
     try {
@@ -259,11 +350,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/catalog/main-catalog", async (req: Request, res: Response) => {
     try {
       // In production, verify JWT token here
-      const { pdfUrl, title, description } = req.body;
-      const catalog = await storage.updateMainCatalog({ pdfUrl, title, description });
+      const catalogData = insertMainCatalogSchema.parse(req.body);
+      const catalog = await storage.updateMainCatalog(catalogData);
       res.json(catalog);
     } catch (error) {
-      res.status(400).json({ message: "Failed to update catalog" });
+      console.error("Catalog update error:", error);
+      res.status(400).json({ 
+        message: "Failed to update catalog",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
     }
   });
 

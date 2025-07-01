@@ -127,6 +127,42 @@ export const viewDataSchema = z.object({
   lastViewedIPs: z.array(z.string()).default([])
 });
 
+// Company Events Schema
+export const companyEventSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string(),
+  imageUrl: z.string(),
+  eventDate: z.date(),
+  published: z.boolean().default(true),
+  createdAt: z.date().default(() => new Date())
+});
+
+export const insertCompanyEventSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().min(1).max(1000),
+  imageUrl: z.string().min(1),
+  eventDate: z.date(),
+  published: z.boolean().default(true)
+});
+
+// Main Catalog Schema
+export const mainCatalogSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  description: z.string(),
+  pdfUrl: z.string(),
+  fileSize: z.string().optional(),
+  lastUpdated: z.date().default(() => new Date())
+});
+
+export const insertMainCatalogSchema = z.object({
+  title: z.string().min(1).max(200),
+  description: z.string().min(1).max(500),
+  pdfUrl: z.string().min(1),
+  fileSize: z.string().optional()
+});
+
 // Auth Schema
 export const loginSchema = z.object({
   username: z.string(),
@@ -144,3 +180,7 @@ export type ContactMessage = z.infer<typeof contactMessageSchema>;
 export type InsertContactMessage = z.infer<typeof insertContactMessageSchema>;
 export type ViewData = z.infer<typeof viewDataSchema>;
 export type LoginRequest = z.infer<typeof loginSchema>;
+export type CompanyEvent = z.infer<typeof companyEventSchema>;
+export type InsertCompanyEvent = z.infer<typeof insertCompanyEventSchema>;
+export type MainCatalog = z.infer<typeof mainCatalogSchema>;
+export type InsertMainCatalog = z.infer<typeof insertMainCatalogSchema>;

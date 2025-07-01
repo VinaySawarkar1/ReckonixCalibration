@@ -22,6 +22,10 @@ export default function Home() {
     queryKey: ["/api/products"],
   });
 
+  const { data: events = [] } = useQuery({
+    queryKey: ["/api/events"],
+  });
+
   // Record website view
   useEffect(() => {
     apiRequest("POST", "/api/analytics/website-views");
@@ -110,6 +114,10 @@ export default function Home() {
                 <Button
                   variant="outline"
                   className="border-2 border-white text-white px-8 py-3 hover:bg-white hover:text-maroon-500 transition-all"
+                  onClick={() => {
+                    const catalogSection = document.getElementById('download-catalog');
+                    catalogSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
                 >
                   <Download className="mr-2 h-4 w-4" />
                   Download Catalog
@@ -122,17 +130,15 @@ export default function Home() {
               animate={{ opacity: 1, scale: 1 }}
               transition={{ duration: 0.8, delay: 0.2 }}
             >
-              <img
+              <video
                 src="https://cdn.pixabay.com/video/2016/07/23/3975-176000797_medium.mp4"
-                alt="Industrial calibration and testing equipment"
+                autoPlay
+                loop
+                muted
+                playsInline
                 className="rounded-xl shadow-2xl w-full h-auto transform hover:scale-[1.02] transition-all duration-700"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-xl"></div>
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Button className="bg-white/90 rounded-full p-4 hover:bg-white transition-all transform hover:scale-110">
-                  <Play className="text-maroon-500 h-6 w-6 ml-1" />
-                </Button>
-              </div>
             </motion.div>
           </div>
         </div>
@@ -353,6 +359,79 @@ export default function Home() {
         </div>
       </section>
 
+      {/* Recent Events Section */}
+      <section className="py-16 bg-gray-50">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div
+            className="text-center mb-12"
+            initial={{ opacity: 0, y: 30 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+          >
+            <h2 className="font-cinzel text-3xl font-bold text-gray-900 mb-4">
+              Recent Company Events
+            </h2>
+            <p className="text-lg text-gray-600">
+              Stay updated with our latest achievements and milestones
+            </p>
+          </motion.div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {events.slice(0, 3).map((event, index) => (
+              <motion.div
+                key={event.id}
+                className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-shadow duration-300"
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ duration: 0.6, delay: index * 0.1 }}
+              >
+                <div className="relative h-48 overflow-hidden">
+                  <img
+                    src={event.imageUrl}
+                    alt={event.title}
+                    className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
+                  />
+                  <div className="absolute top-4 right-4 bg-maroon-500 text-white px-3 py-1 rounded-full text-sm">
+                    {new Date(event.eventDate).toLocaleDateString('en-US', { 
+                      month: 'short', 
+                      day: 'numeric',
+                      year: 'numeric'
+                    })}
+                  </div>
+                </div>
+                <div className="p-6">
+                  <h3 className="font-cinzel text-xl font-bold text-gray-900 mb-3">
+                    {event.title}
+                  </h3>
+                  <p className="text-gray-600 mb-4 line-clamp-3">
+                    {event.description}
+                  </p>
+                  <div className="flex items-center text-maroon-500 font-medium">
+                    <span className="text-sm">Read more</span>
+                    <svg className="w-4 h-4 ml-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                </div>
+              </motion.div>
+            ))}
+          </div>
+
+          {events.length > 3 && (
+            <div className="text-center mt-12">
+              <Button 
+                variant="outline" 
+                className="border-maroon-500 text-maroon-500 hover:bg-maroon-500 hover:text-white"
+              >
+                View All Events
+              </Button>
+            </div>
+          )}
+        </div>
+      </section>
+
       {/* Why Choose Us Section */}
       <section className="py-16">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -468,7 +547,7 @@ export default function Home() {
       </section>
 
       {/* Download Catalog Section */}
-      <section className="py-16 bg-gray-50">
+      <section id="download-catalog" className="py-16 bg-gray-50">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}

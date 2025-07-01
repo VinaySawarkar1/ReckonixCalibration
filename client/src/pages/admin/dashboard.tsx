@@ -62,6 +62,23 @@ export default function AdminDashboard() {
     }
   });
 
+  const [showAddEventDialog, setShowAddEventDialog] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<any>(null);
+  const [newEvent, setNewEvent] = useState({
+    title: "",
+    description: "",
+    imageUrl: "",
+    eventDate: "",
+    published: true
+  });
+
+  const [mainCatalog, setMainCatalog] = useState({
+    title: "Main Product Catalog 2024",
+    description: "Complete product specifications and technical details",
+    pdfUrl: "",
+    fileSize: ""
+  });
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!user) {
@@ -88,6 +105,14 @@ export default function AdminDashboard() {
 
   const { data: productViews = [] } = useQuery({
     queryKey: ["/api/analytics/product-views"],
+  });
+
+  const { data: events = [] } = useQuery({
+    queryKey: ["/api/events"],
+  });
+
+  const { data: catalog } = useQuery({
+    queryKey: ["/api/catalog/main-catalog"],
   });
 
   // Export functionality
@@ -442,6 +467,128 @@ export default function AdminDashboard() {
     if (confirm("Are you sure you want to delete this product?")) {
       deleteProduct.mutate(id);
     }
+  };
+
+  // Event mutations
+  const createEvent = useMutation({
+    mutationFn: (eventData: any) => apiRequest("POST", "/api/events", eventData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setShowAddEventDialog(false);
+      resetEventForm();
+      toast({
+        title: "Event Created",
+        description: "Event has been created successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create event.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateEvent = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiRequest("PUT", `/api/events/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      setEditingEvent(null);
+      toast({
+        title: "Event Updated",
+        description: "Event has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update event.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteEvent = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/events/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/events"] });
+      toast({
+        title: "Event Deleted",
+        description: "Event has been deleted successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete event.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateCatalog = useMutation({
+    mutationFn: (catalogData: any) => apiRequest("POST", "/api/catalog/main-catalog", catalogData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/catalog/main-catalog"] });
+      toast({
+        title: "Catalog Updated",
+        description: "Main catalog has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update catalog.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const resetEventForm = () => {
+    setNewEvent({
+      title: "",
+      description: "",
+      imageUrl: "",
+      eventDate: "",
+      published: true
+    });
+  };
+
+  const handleAddEvent = () => {
+    const eventData = {
+      ...newEvent,
+      eventDate: newEvent.eventDate
+    };
+    createEvent.mutate(eventData);
+  };
+
+  const handleEditEvent = (event: any) => {
+    setEditingEvent({
+      ...event,
+      eventDate: new Date(event.eventDate).toISOString().split('T')[0]
+    });
+  };
+
+  const handleUpdateEvent = () => {
+    if (editingEvent) {
+      const eventData = {
+        ...editingEvent,
+        eventDate: editingEvent.eventDate
+      };
+      updateEvent.mutate({ id: editingEvent.id, data: eventData });
+    }
+  };
+
+  const handleDeleteEvent = (id: number) => {
+    if (confirm("Are you sure you want to delete this event?")) {
+      deleteEvent.mutate(id);
+    }
+  };
+
+  const handleUpdateCatalog = () => {
+    updateCatalog.mutate(mainCatalog);
   };
 
   if (!user) {
@@ -800,7 +947,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-6">
+          <TabsList className="grid w-full grid-cols-7">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Dashboard
@@ -808,6 +955,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="products" className="flex items-center gap-2">
               <Package className="h-4 w-4" />
               Products
+            </TabsTrigger>
+            <TabsTrigger value="events" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Events
             </TabsTrigger>
             <TabsTrigger value="quotes" className="flex items-center gap-2 relative">
               <FileText className="h-4 w-4" />
@@ -1096,6 +1247,245 @@ export default function AdminDashboard() {
             )}
           </TabsContent>
 
+          {/* Events Tab */}
+          <TabsContent value="events" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Company Events Management</h2>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => setShowAddEventDialog(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Event
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Event
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Date
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Status
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {events.map((event) => (
+                        <tr key={event.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <img
+                                className="h-10 w-10 rounded-lg object-cover"
+                                src={event.imageUrl}
+                                alt={event.title}
+                              />
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{event.title}</div>
+                                <div className="text-sm text-gray-500 truncate max-w-xs">
+                                  {event.description}
+                                </div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                            {new Date(event.eventDate).toLocaleDateString()}
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant={event.published ? "default" : "secondary"}>
+                              {event.published ? "Published" : "Draft"}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditEvent(event)}
+                                className="text-blue-600 hover:text-blue-900"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-red-600 hover:text-red-900"
+                                onClick={() => handleDeleteEvent(event.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {events.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No events found. Create your first event!
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Add Event Dialog */}
+            {showAddEventDialog && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Add Event</h3>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowAddEventDialog(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Event Title</label>
+                      <Input
+                        value={newEvent.title}
+                        onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                        placeholder="Enter event title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description</label>
+                      <Textarea
+                        value={newEvent.description}
+                        onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                        placeholder="Event description"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Image URL</label>
+                      <Input
+                        value={newEvent.imageUrl}
+                        onChange={(e) => setNewEvent({ ...newEvent, imageUrl: e.target.value })}
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Event Date</label>
+                      <Input
+                        type="date"
+                        value={newEvent.eventDate}
+                        onChange={(e) => setNewEvent({ ...newEvent, eventDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="published"
+                        checked={newEvent.published}
+                        onChange={(e) => setNewEvent({ ...newEvent, published: e.target.checked })}
+                      />
+                      <label htmlFor="published" className="text-sm">Published</label>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-6">
+                    <Button variant="outline" onClick={() => setShowAddEventDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleAddEvent}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={!newEvent.title || !newEvent.description || !newEvent.imageUrl || !newEvent.eventDate}
+                    >
+                      Add Event
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit Event Dialog */}
+            {editingEvent && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Edit Event</h3>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setEditingEvent(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Event Title</label>
+                      <Input
+                        value={editingEvent.title}
+                        onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                        placeholder="Enter event title"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description</label>
+                      <Textarea
+                        value={editingEvent.description}
+                        onChange={(e) => setEditingEvent({ ...editingEvent, description: e.target.value })}
+                        placeholder="Event description"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Image URL</label>
+                      <Input
+                        value={editingEvent.imageUrl}
+                        onChange={(e) => setEditingEvent({ ...editingEvent, imageUrl: e.target.value })}
+                        placeholder="https://example.com/image.jpg"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Event Date</label>
+                      <Input
+                        type="date"
+                        value={editingEvent.eventDate}
+                        onChange={(e) => setEditingEvent({ ...editingEvent, eventDate: e.target.value })}
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="editPublished"
+                        checked={editingEvent.published}
+                        onChange={(e) => setEditingEvent({ ...editingEvent, published: e.target.checked })}
+                      />
+                      <label htmlFor="editPublished" className="text-sm">Published</label>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-6">
+                    <Button variant="outline" onClick={() => setEditingEvent(null)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleUpdateEvent}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Update Event
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
           {/* Quotes Tab */}
           <TabsContent value="quotes" className="space-y-6">
             <div className="flex justify-between items-center">
@@ -1273,19 +1663,61 @@ export default function AdminDashboard() {
               <CardContent className="space-y-4">
                 <div>
                   <label className="block text-sm font-medium mb-1">Catalog Title</label>
-                  <Input placeholder="Main Product Catalog 2024" />
+                  <Input 
+                    value={mainCatalog.title}
+                    onChange={(e) => setMainCatalog({ ...mainCatalog, title: e.target.value })}
+                    placeholder="Main Product Catalog 2024" 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">Description</label>
-                  <Input placeholder="Complete product specifications and details" />
+                  <Input 
+                    value={mainCatalog.description}
+                    onChange={(e) => setMainCatalog({ ...mainCatalog, description: e.target.value })}
+                    placeholder="Complete product specifications and details" 
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">PDF URL</label>
-                  <Input placeholder="https://example.com/catalog.pdf" />
+                  <Input 
+                    value={mainCatalog.pdfUrl}
+                    onChange={(e) => setMainCatalog({ ...mainCatalog, pdfUrl: e.target.value })}
+                    placeholder="https://example.com/catalog.pdf" 
+                  />
                 </div>
-                <Button className="bg-blue-600 hover:bg-blue-700 text-white">
+                <div>
+                  <label className="block text-sm font-medium mb-1">File Size (optional)</label>
+                  <Input 
+                    value={mainCatalog.fileSize}
+                    onChange={(e) => setMainCatalog({ ...mainCatalog, fileSize: e.target.value })}
+                    placeholder="15.2 MB" 
+                  />
+                </div>
+                <Button 
+                  onClick={handleUpdateCatalog}
+                  className="bg-blue-600 hover:bg-blue-700 text-white"
+                  disabled={!mainCatalog.title || !mainCatalog.description || !mainCatalog.pdfUrl}
+                >
                   Update Catalog
                 </Button>
+                
+                {catalog && (
+                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                    <h4 className="font-semibold mb-2">Current Catalog Info:</h4>
+                    <p><strong>Title:</strong> {catalog.title}</p>
+                    <p><strong>Description:</strong> {catalog.description}</p>
+                    <p><strong>Last Updated:</strong> {new Date(catalog.lastUpdated).toLocaleDateString()}</p>
+                    {catalog.fileSize && <p><strong>File Size:</strong> {catalog.fileSize}</p>}
+                    <Button 
+                      variant="outline" 
+                      className="mt-2"
+                      onClick={() => window.open(catalog.pdfUrl, '_blank')}
+                    >
+                      <Download className="h-4 w-4 mr-2" />
+                      View Current Catalog
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </TabsContent>

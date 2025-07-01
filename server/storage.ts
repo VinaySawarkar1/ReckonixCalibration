@@ -7,7 +7,11 @@ import {
   InsertQuoteRequest, 
   ContactMessage, 
   InsertContactMessage, 
-  ViewData 
+  ViewData,
+  CompanyEvent,
+  InsertCompanyEvent,
+  MainCatalog,
+  InsertMainCatalog
 } from "@shared/schema";
 
 export interface IStorage {
@@ -40,6 +44,17 @@ export interface IStorage {
   getWebsiteViews(): Promise<number>;
   incrementWebsiteViews(ip?: string): Promise<void>;
   getProductViews(): Promise<{ productId: number; views: number; productName: string }[]>;
+
+  // Company Events methods
+  getAllEvents(): Promise<CompanyEvent[]>;
+  getEvent(id: number): Promise<CompanyEvent | undefined>;
+  createEvent(event: InsertCompanyEvent): Promise<CompanyEvent>;
+  updateEvent(id: number, event: Partial<InsertCompanyEvent>): Promise<CompanyEvent | undefined>;
+  deleteEvent(id: number): Promise<boolean>;
+
+  // Main Catalog methods
+  getMainCatalog(): Promise<MainCatalog | undefined>;
+  updateMainCatalog(catalog: InsertMainCatalog): Promise<MainCatalog>;
 }
 
 export class MemStorage implements IStorage {
@@ -48,11 +63,14 @@ export class MemStorage implements IStorage {
   private quotes: Map<number, QuoteRequest>;
   private messages: Map<number, ContactMessage>;
   private viewData: Map<string, ViewData>;
+  private events: Map<number, CompanyEvent>;
+  private mainCatalog: MainCatalog | undefined;
   private currentUserId: number;
   private currentProductId: number;
   private currentQuoteId: number;
   private currentMessageId: number;
   private currentViewId: number;
+  private currentEventId: number;
 
   constructor() {
     this.users = new Map();
@@ -60,11 +78,14 @@ export class MemStorage implements IStorage {
     this.quotes = new Map();
     this.messages = new Map();
     this.viewData = new Map();
+    this.events = new Map();
+    this.mainCatalog = undefined;
     this.currentUserId = 1;
     this.currentProductId = 1;
     this.currentQuoteId = 1;
     this.currentMessageId = 1;
     this.currentViewId = 1;
+    this.currentEventId = 1;
 
     // Initialize with default admin user
     this.createUser({
@@ -73,8 +94,9 @@ export class MemStorage implements IStorage {
       role: 'admin'
     });
 
-    // Initialize with sample products
+    // Initialize with sample products and events
     this.initializeSampleData();
+    this.initializeSampleEvents();
   }
 
   private async initializeSampleData() {
@@ -313,17 +335,34 @@ export class MemStorage implements IStorage {
     return message;
   }
 
-  // Catalog methods
-  async getMainCatalog() {
-    // The database interaction is removed for the MemStorage.
-    // This is a placeholder; in a real implementation, this would fetch from a database.
-    return undefined;
-  }
+  private async initializeSampleEvents() {
+    const sampleEvents: InsertCompanyEvent[] = [
+      {
+        title: "ISO 17025 Accreditation Renewed",
+        description: "Reckonix has successfully renewed its ISO 17025 accreditation for calibration services, ensuring continued compliance with international standards.",
+        imageUrl: "https://images.unsplash.com/photo-1454165804606-c3d57bc86b40?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        eventDate: new Date("2024-01-15"),
+        published: true
+      },
+      {
+        title: "New R&D Facility Inauguration",
+        description: "Our state-of-the-art research and development facility was inaugurated, expanding our capabilities in precision instrument development.",
+        imageUrl: "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        eventDate: new Date("2024-02-20"),
+        published: true
+      },
+      {
+        title: "Partnership with Global Aerospace Leader",
+        description: "Reckonix announces strategic partnership with leading aerospace manufacturer to provide advanced calibration solutions for next-generation aircraft.",
+        imageUrl: "https://images.unsplash.com/photo-1565514020179-026b92b84bb6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
+        eventDate: new Date("2024-03-10"),
+        published: true
+      }
+    ];
 
-  async updateMainCatalog({ pdfUrl, title, description }: { pdfUrl: string; title: string; description: string }) {
-    // The database interaction is removed for the MemStorage.
-    // This is a placeholder; in a real implementation, this would update the database.
-    return undefined;
+    for (const event of sampleEvents) {
+      await this.createEvent(event);
+    }
   }
 
   // Analytics methods
@@ -365,6 +404,56 @@ export class MemStorage implements IStorage {
       views: product.views,
       productName: product.name
     }));
+  }
+
+  // Company Events methods
+  async getAllEvents(): Promise<CompanyEvent[]> {
+    return Array.from(this.events.values())
+      .filter(event => event.published)
+      .sort((a, b) => b.eventDate.getTime() - a.eventDate.getTime());
+  }
+
+  async getEvent(id: number): Promise<CompanyEvent | undefined> {
+    return this.events.get(id);
+  }
+
+  async createEvent(insertEvent: InsertCompanyEvent): Promise<CompanyEvent> {
+    const id = this.currentEventId++;
+    const event: CompanyEvent = { 
+      ...insertEvent, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.events.set(id, event);
+    return event;
+  }
+
+  async updateEvent(id: number, updateData: Partial<InsertCompanyEvent>): Promise<CompanyEvent | undefined> {
+    const event = this.events.get(id);
+    if (!event) return undefined;
+
+    const updatedEvent = { ...event, ...updateData };
+    this.events.set(id, updatedEvent);
+    return updatedEvent;
+  }
+
+  async deleteEvent(id: number): Promise<boolean> {
+    return this.events.delete(id);
+  }
+
+  // Main Catalog methods
+  async getMainCatalog(): Promise<MainCatalog | undefined> {
+    return this.mainCatalog;
+  }
+
+  async updateMainCatalog(insertCatalog: InsertMainCatalog): Promise<MainCatalog> {
+    const catalog: MainCatalog = {
+      id: 1,
+      ...insertCatalog,
+      lastUpdated: new Date()
+    };
+    this.mainCatalog = catalog;
+    return catalog;
   }
 }
 
