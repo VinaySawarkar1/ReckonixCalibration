@@ -169,6 +169,29 @@ export const loginSchema = z.object({
   password: z.string()
 });
 
+// Customer Schema
+export const customerSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  logoUrl: z.string(),
+  category: z.string(),
+  description: z.string().optional(),
+  website: z.string().optional(),
+  industry: z.string(),
+  featured: z.boolean().default(false),
+  createdAt: z.date().default(() => new Date())
+});
+
+export const insertCustomerSchema = z.object({
+  name: z.string().min(1).max(200),
+  logoUrl: z.string().min(1),
+  category: z.string().min(1).max(100),
+  description: z.string().optional(),
+  website: z.string().optional(),
+  industry: z.string().min(1).max(100),
+  featured: z.boolean().default(false)
+});
+
 // Export types
 export type User = z.infer<typeof userSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -184,3 +207,5 @@ export type CompanyEvent = z.infer<typeof companyEventSchema>;
 export type InsertCompanyEvent = z.infer<typeof insertCompanyEventSchema>;
 export type MainCatalog = z.infer<typeof mainCatalogSchema>;
 export type InsertMainCatalog = z.infer<typeof insertMainCatalogSchema>;
+export type Customer = z.infer<typeof customerSchema>;
+export type InsertCustomer = z.infer<typeof insertCustomerSchema>;

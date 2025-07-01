@@ -11,7 +11,9 @@ import {
   CompanyEvent,
   InsertCompanyEvent,
   MainCatalog,
-  InsertMainCatalog
+  InsertMainCatalog,
+  Customer,
+  InsertCustomer
 } from "@shared/schema";
 
 export interface IStorage {
@@ -55,6 +57,13 @@ export interface IStorage {
   // Main Catalog methods
   getMainCatalog(): Promise<MainCatalog | undefined>;
   updateMainCatalog(catalog: InsertMainCatalog): Promise<MainCatalog>;
+
+  // Customer methods
+  getAllCustomers(): Promise<Customer[]>;
+  getCustomer(id: number): Promise<Customer | undefined>;
+  createCustomer(customer: InsertCustomer): Promise<Customer>;
+  updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
+  deleteCustomer(id: number): Promise<boolean>;
 }
 
 export class MemStorage implements IStorage {
@@ -65,12 +74,14 @@ export class MemStorage implements IStorage {
   private viewData: Map<string, ViewData>;
   private events: Map<number, CompanyEvent>;
   private mainCatalog: MainCatalog | undefined;
+  private customers: Map<number, Customer>;
   private currentUserId: number;
   private currentProductId: number;
   private currentQuoteId: number;
   private currentMessageId: number;
   private currentViewId: number;
   private currentEventId: number;
+  private currentCustomerId: number;
 
   constructor() {
     this.users = new Map();
@@ -80,12 +91,14 @@ export class MemStorage implements IStorage {
     this.viewData = new Map();
     this.events = new Map();
     this.mainCatalog = undefined;
+    this.customers = new Map();
     this.currentUserId = 1;
     this.currentProductId = 1;
     this.currentQuoteId = 1;
     this.currentMessageId = 1;
     this.currentViewId = 1;
     this.currentEventId = 1;
+    this.currentCustomerId = 1;
 
     // Initialize with default admin user
     this.createUser({
@@ -97,6 +110,7 @@ export class MemStorage implements IStorage {
     // Initialize with sample products and events
     this.initializeSampleData();
     this.initializeSampleEvents();
+    this.initializeSampleCustomers();
   }
 
   private async initializeSampleData() {
@@ -454,6 +468,96 @@ export class MemStorage implements IStorage {
     };
     this.mainCatalog = catalog;
     return catalog;
+  }
+
+  private async initializeSampleCustomers() {
+    const sampleCustomers: InsertCustomer[] = [
+      {
+        name: "TechCorp Industries",
+        logoUrl: "https://images.unsplash.com/photo-1560472354-b33ff0c44a43?w=200&h=100&fit=crop",
+        category: "Technology",
+        description: "Leading technology solutions provider",
+        industry: "Aerospace & Defense",
+        featured: true
+      },
+      {
+        name: "Precision Manufacturing",
+        logoUrl: "https://images.unsplash.com/photo-1486406146926-c627a92ad1ab?w=200&h=100&fit=crop",
+        category: "Manufacturing",
+        description: "Advanced precision manufacturing",
+        industry: "Automotive Manufacturing",
+        featured: true
+      },
+      {
+        name: "AeroSpace Solutions",
+        logoUrl: "https://images.unsplash.com/photo-1503387837-b154d5074bd2?w=200&h=100&fit=crop",
+        category: "Aerospace",
+        description: "Comprehensive aerospace solutions",
+        industry: "Aerospace & Defense",
+        featured: true
+      },
+      {
+        name: "AutoTech Systems",
+        logoUrl: "https://images.unsplash.com/photo-1485827404703-89b55fcc595e?w=200&h=100&fit=crop",
+        category: "Automotive",
+        description: "Automotive technology systems",
+        industry: "Automotive Manufacturing",
+        featured: false
+      },
+      {
+        name: "BioMed Research",
+        logoUrl: "https://images.unsplash.com/photo-1559757148-5c350d0d3c56?w=200&h=100&fit=crop",
+        category: "Healthcare",
+        description: "Biomedical research and development",
+        industry: "Pharmaceutical & Biotech",
+        featured: false
+      },
+      {
+        name: "Energy Dynamics",
+        logoUrl: "https://images.unsplash.com/photo-1497366216548-37526070297c?w=200&h=100&fit=crop",
+        category: "Energy",
+        description: "Dynamic energy solutions",
+        industry: "Oil & Gas",
+        featured: false
+      }
+    ];
+
+    for (const customer of sampleCustomers) {
+      await this.createCustomer(customer);
+    }
+  }
+
+  // Customer methods
+  async getAllCustomers(): Promise<Customer[]> {
+    return Array.from(this.customers.values());
+  }
+
+  async getCustomer(id: number): Promise<Customer | undefined> {
+    return this.customers.get(id);
+  }
+
+  async createCustomer(insertCustomer: InsertCustomer): Promise<Customer> {
+    const id = this.currentCustomerId++;
+    const customer: Customer = { 
+      ...insertCustomer, 
+      id, 
+      createdAt: new Date() 
+    };
+    this.customers.set(id, customer);
+    return customer;
+  }
+
+  async updateCustomer(id: number, updateData: Partial<InsertCustomer>): Promise<Customer | undefined> {
+    const customer = this.customers.get(id);
+    if (!customer) return undefined;
+
+    const updatedCustomer = { ...customer, ...updateData };
+    this.customers.set(id, updatedCustomer);
+    return updatedCustomer;
+  }
+
+  async deleteCustomer(id: number): Promise<boolean> {
+    return this.customers.delete(id);
   }
 }
 

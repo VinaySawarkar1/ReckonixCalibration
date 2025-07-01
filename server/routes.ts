@@ -7,6 +7,7 @@ import {
   insertContactMessageSchema,
   insertCompanyEventSchema,
   insertMainCatalogSchema,
+  insertCustomerSchema,
   loginSchema
 } from "@shared/schema";
 
@@ -359,6 +360,89 @@ export async function registerRoutes(app: Express): Promise<Server> {
         message: "Failed to update catalog",
         details: error instanceof Error ? error.message : "Unknown error"
       });
+    }
+  });
+
+  // Customer routes
+  app.get("/api/customers", async (req: Request, res: Response) => {
+    try {
+      const customers = await storage.getAllCustomers();
+      res.json(customers);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch customers" });
+    }
+  });
+
+  app.get("/api/customers/:id", async (req: Request, res: Response) => {
+    try {
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid customer ID" });
+      }
+
+      const customer = await storage.getCustomer(id);
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+      
+      res.json(customer);
+    } catch (error) {
+      res.status(500).json({ message: "Failed to fetch customer" });
+    }
+  });
+
+  app.post("/api/customers", async (req: Request, res: Response) => {
+    try {
+      // In production, verify JWT token here
+      const customerData = insertCustomerSchema.parse(req.body);
+      const customer = await storage.createCustomer(customerData);
+      res.status(201).json(customer);
+    } catch (error) {
+      console.error("Customer creation error:", error);
+      res.status(400).json({ 
+        message: "Invalid customer data",
+        details: error instanceof Error ? error.message : "Unknown error"
+      });
+    }
+  });
+
+  app.put("/api/customers/:id", async (req: Request, res: Response) => {
+    try {
+      // In production, verify JWT token here
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid customer ID" });
+      }
+
+      const customerData = insertCustomerSchema.partial().parse(req.body);
+      const customer = await storage.updateCustomer(id, customerData);
+      
+      if (!customer) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      res.json(customer);
+    } catch (error) {
+      res.status(400).json({ message: "Invalid customer data" });
+    }
+  });
+
+  app.delete("/api/customers/:id", async (req: Request, res: Response) => {
+    try {
+      // In production, verify JWT token here
+      const id = parseInt(req.params.id);
+      if (isNaN(id)) {
+        return res.status(400).json({ message: "Invalid customer ID" });
+      }
+
+      const deleted = await storage.deleteCustomer(id);
+      if (!deleted) {
+        return res.status(404).json({ message: "Customer not found" });
+      }
+
+      res.json({ message: "Customer deleted successfully" });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to delete customer" });
     }
   });
 

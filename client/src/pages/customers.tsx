@@ -1,51 +1,40 @@
 import { motion } from "framer-motion";
+import { useQuery } from "@tanstack/react-query";
 import CustomerLogo from "../components/customer-logo";
 
 export default function Customers() {
-  // Real customer categories - no mock data
-  const customerCategories = [
-    {
-      title: "Aerospace & Defense",
-      description: "Leading aerospace companies trust our precision instruments",
-      icon: "✈️"
-    },
-    {
-      title: "Automotive Manufacturing",
-      description: "Automotive industry leaders rely on our testing systems",
-      icon: "🚗"
-    },
-    {
-      title: "Pharmaceutical & Biotech",
-      description: "Pharmaceutical companies use our calibration solutions",
-      icon: "🧬"
-    },
-    {
-      title: "Oil & Gas",
-      description: "Energy sector depends on our measuring instruments",
-      icon: "⚡"
-    },
-    {
-      title: "Electronics & Semiconductors",
-      description: "Tech companies utilize our precision equipment",
-      icon: "💻"
-    },
-    {
-      title: "Research Institutions",
-      description: "Leading research facilities use our instruments",
-      icon: "🔬"
+  const { data: customers = [] } = useQuery({
+    queryKey: ["/api/customers"],
+  });
+
+  // Group customers by industry
+  const customersByIndustry = customers.reduce((acc, customer) => {
+    if (!acc[customer.industry]) {
+      acc[customer.industry] = [];
+    }
+    acc[customer.industry].push(customer);
+    return acc;
+  }, {} as Record<string, typeof customers>);
+
+  const industryIcons: Record<string, string> = {
+    "Aerospace & Defense": "✈️",
+    "Automotive Manufacturing": "🚗", 
+    "Pharmaceutical & Biotech": "🧬",
+    "Oil & Gas": "⚡",
+    "Electronics & Semiconductors": "💻",
+    "Research Institutions": "🔬"
+  };
+
+  const customerCategories = Object.keys(customersByIndustry).map(industry => ({
+    title: industry,
+    description: `Leading ${industry.toLowerCase()} companies trust our precision instruments`,
+    icon: industryIcons[industry] || "🏭",
+    customers: customersByIndustry[industry]
+  })); "🔬"
     }
   ];
 
-  // Sample customer logos for demonstration (would be real logos in production)
-  const customerLogos = [
-    "TechCorp Industries", "Precision Manufacturing", "AeroSpace Solutions", 
-    "AutoTech Systems", "BioMed Research", "Energy Dynamics",
-    "Electronics Plus", "Manufacturing Pro", "TestLab Solutions",
-    "CalibrateTech", "MeasureSystems", "QualityControl Inc",
-    "IndustrialTech", "PrecisionWorks", "TestSolutions Ltd",
-    "ManufacturingTech", "QualityAssurance Co", "TechInnovations",
-    "SystemsIntegration", "PrecisionInstruments"
-  ];
+  
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -114,15 +103,15 @@ export default function Customers() {
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {customerLogos.map((logo, index) => (
+            {customers.map((customer, index) => (
               <motion.div
-                key={index}
+                key={customer.id}
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
               >
-                <CustomerLogo name={logo} />
+                <CustomerLogo name={customer.name} logoUrl={customer.logoUrl} />
               </motion.div>
             ))}
           </div>

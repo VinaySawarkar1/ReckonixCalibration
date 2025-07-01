@@ -79,6 +79,18 @@ export default function AdminDashboard() {
     fileSize: ""
   });
 
+  const [showAddCustomerDialog, setShowAddCustomerDialog] = useState(false);
+  const [editingCustomer, setEditingCustomer] = useState<any>(null);
+  const [newCustomer, setNewCustomer] = useState({
+    name: "",
+    logoUrl: "",
+    category: "",
+    description: "",
+    website: "",
+    industry: "Aerospace & Defense" as const,
+    featured: false
+  });
+
   // Redirect if not authenticated
   useEffect(() => {
     if (!user) {
@@ -113,6 +125,10 @@ export default function AdminDashboard() {
 
   const { data: catalog } = useQuery({
     queryKey: ["/api/catalog/main-catalog"],
+  });
+
+  const { data: customers = [] } = useQuery({
+    queryKey: ["/api/customers"],
   });
 
   // Export functionality
@@ -591,6 +607,97 @@ export default function AdminDashboard() {
     updateCatalog.mutate(mainCatalog);
   };
 
+  // Customer mutations
+  const createCustomer = useMutation({
+    mutationFn: (customerData: any) => apiRequest("POST", "/api/customers", customerData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      setShowAddCustomerDialog(false);
+      resetCustomerForm();
+      toast({
+        title: "Customer Created",
+        description: "Customer has been created successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to create customer.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const updateCustomer = useMutation({
+    mutationFn: ({ id, data }: { id: number; data: any }) =>
+      apiRequest("PUT", `/api/customers/${id}`, data),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      setEditingCustomer(null);
+      toast({
+        title: "Customer Updated",
+        description: "Customer has been updated successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to update customer.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const deleteCustomer = useMutation({
+    mutationFn: (id: number) => apiRequest("DELETE", `/api/customers/${id}`),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["/api/customers"] });
+      toast({
+        title: "Customer Deleted",
+        description: "Customer has been deleted successfully.",
+      });
+    },
+    onError: () => {
+      toast({
+        title: "Error",
+        description: "Failed to delete customer.",
+        variant: "destructive",
+      });
+    }
+  });
+
+  const resetCustomerForm = () => {
+    setNewCustomer({
+      name: "",
+      logoUrl: "",
+      category: "",
+      description: "",
+      website: "",
+      industry: "Aerospace & Defense",
+      featured: false
+    });
+  };
+
+  const handleAddCustomer = () => {
+    createCustomer.mutate(newCustomer);
+  };
+
+  const handleEditCustomer = (customer: any) => {
+    setEditingCustomer({ ...customer });
+  };
+
+  const handleUpdateCustomer = () => {
+    if (editingCustomer) {
+      updateCustomer.mutate({ id: editingCustomer.id, data: editingCustomer });
+    }
+  };
+
+  const handleDeleteCustomer = (id: number) => {
+    if (confirm("Are you sure you want to delete this customer?")) {
+      deleteCustomer.mutate(id);
+    }
+  };
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -839,34 +946,89 @@ export default function AdminDashboard() {
         </Button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+      <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium mb-1">Image URL</label>
-          <Input
-            value={product.imageUrl}
-            onChange={(e) => {
-              if (isEditing) {
-                setEditingProduct({ ...product, imageUrl: e.target.value });
-              } else {
-                setNewProduct({ ...product, imageUrl: e.target.value });
-              }
-            }}
-            placeholder="https://example.com/image.jpg"
-          />
+          <label className="block text-sm font-medium mb-1">Upload Product Image</label>
+          <div className="flex gap-2">
+            <Input 
+              type="file"
+              accept="image/*"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  // For demo purposes, using a placeholder URL
+                  // In production, you would upload to Replit Object Storage
+                  const fakeUrl = `https://storage.example.com/products/${file.name}`;
+                  if (isEditing) {
+                    setEditingProduct({ ...product, imageUrl: fakeUrl });
+                  } else {
+                    setNewProduct({ ...product, imageUrl: fakeUrl });
+                  }
+                  toast({
+                    title: "Image Selected",
+                    description: `${file.name} ready for upload`,
+                  });
+                }
+              }}
+              className="flex-1"
+            />
+          </div>
+          <div className="mt-2">
+            <label className="block text-sm font-medium mb-1">Or Image URL</label>
+            <Input
+              value={product.imageUrl}
+              onChange={(e) => {
+                if (isEditing) {
+                  setEditingProduct({ ...product, imageUrl: e.target.value });
+                } else {
+                  setNewProduct({ ...product, imageUrl: e.target.value });
+                }
+              }}
+              placeholder="https://example.com/image.jpg"
+            />
+          </div>
         </div>
+        
         <div>
-          <label className="block text-sm font-medium mb-1">Datasheet PDF URL</label>
-          <Input
-            value={product.datasheetPdfUrl}
-            onChange={(e) => {
-              if (isEditing) {
-                setEditingProduct({ ...product, datasheetPdfUrl: e.target.value });
-              } else {
-                setNewProduct({ ...product, datasheetPdfUrl: e.target.value });
-              }
-            }}
-            placeholder="https://example.com/datasheet.pdf"
-          />
+          <label className="block text-sm font-medium mb-1">Upload Datasheet PDF</label>
+          <div className="flex gap-2">
+            <Input 
+              type="file"
+              accept=".pdf"
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) {
+                  // For demo purposes, using a placeholder URL
+                  // In production, you would upload to Replit Object Storage
+                  const fakeUrl = `https://storage.example.com/datasheets/${file.name}`;
+                  if (isEditing) {
+                    setEditingProduct({ ...product, datasheetPdfUrl: fakeUrl });
+                  } else {
+                    setNewProduct({ ...product, datasheetPdfUrl: fakeUrl });
+                  }
+                  toast({
+                    title: "Datasheet Selected",
+                    description: `${file.name} ready for upload`,
+                  });
+                }
+              }}
+              className="flex-1"
+            />
+          </div>
+          <div className="mt-2">
+            <label className="block text-sm font-medium mb-1">Or Datasheet PDF URL</label>
+            <Input
+              value={product.datasheetPdfUrl}
+              onChange={(e) => {
+                if (isEditing) {
+                  setEditingProduct({ ...product, datasheetPdfUrl: e.target.value });
+                } else {
+                  setNewProduct({ ...product, datasheetPdfUrl: e.target.value });
+                }
+              }}
+              placeholder="https://example.com/datasheet.pdf"
+            />
+          </div>
         </div>
       </div>
 
@@ -947,7 +1109,7 @@ export default function AdminDashboard() {
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-7">
+          <TabsList className="grid w-full grid-cols-8">
             <TabsTrigger value="dashboard" className="flex items-center gap-2">
               <BarChart3 className="h-4 w-4" />
               Dashboard
@@ -959,6 +1121,10 @@ export default function AdminDashboard() {
             <TabsTrigger value="events" className="flex items-center gap-2">
               <Users className="h-4 w-4" />
               Events
+            </TabsTrigger>
+            <TabsTrigger value="customers" className="flex items-center gap-2">
+              <Users className="h-4 w-4" />
+              Customers
             </TabsTrigger>
             <TabsTrigger value="quotes" className="flex items-center gap-2 relative">
               <FileText className="h-4 w-4" />
@@ -1650,6 +1816,305 @@ export default function AdminDashboard() {
             </Card>
           </TabsContent>
 
+          {/* Customers Tab */}
+          <TabsContent value="customers" className="space-y-6">
+            <div className="flex justify-between items-center">
+              <h2 className="text-2xl font-bold text-gray-900">Customer Management</h2>
+              <Button 
+                className="bg-blue-600 hover:bg-blue-700 text-white"
+                onClick={() => setShowAddCustomerDialog(true)}
+              >
+                <Plus className="mr-2 h-4 w-4" />
+                Add Customer
+              </Button>
+            </div>
+
+            <Card>
+              <CardContent className="p-6">
+                <div className="overflow-x-auto">
+                  <table className="w-full">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Customer
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Industry
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Featured
+                        </th>
+                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Actions
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {customers.map((customer) => (
+                        <tr key={customer.id}>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <div className="flex items-center">
+                              <img
+                                className="h-10 w-10 rounded-lg object-cover"
+                                src={customer.logoUrl}
+                                alt={customer.name}
+                                onError={(e) => {
+                                  const target = e.target as HTMLImageElement;
+                                  target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23f3f4f6"/><text x="20" y="20" font-family="Arial" font-size="12" text-anchor="middle" dy=".3em" fill="%236b7280">${customer.name.charAt(0)}</text></svg>`;
+                                }}
+                              />
+                              <div className="ml-4">
+                                <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                                <div className="text-sm text-gray-500">{customer.category}</div>
+                              </div>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant="outline">{customer.industry}</Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap">
+                            <Badge variant={customer.featured ? "default" : "secondary"}>
+                              {customer.featured ? "Yes" : "No"}
+                            </Badge>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                            <div className="flex space-x-2">
+                              <Button 
+                                variant="ghost" 
+                                size="sm"
+                                onClick={() => handleEditCustomer(customer)}
+                                className="text-blue-600 hover:text-blue-900"
+                              >
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                              <Button 
+                                variant="ghost" 
+                                size="sm" 
+                                className="text-red-600 hover:text-red-900"
+                                onClick={() => handleDeleteCustomer(customer.id)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
+                            </div>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+
+                {customers.length === 0 && (
+                  <div className="text-center py-8 text-gray-500">
+                    No customers found. Create your first customer!
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Add Customer Dialog */}
+            {showAddCustomerDialog && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Add Customer</h3>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setShowAddCustomerDialog(false)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Customer Name</label>
+                        <Input
+                          value={newCustomer.name}
+                          onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                          placeholder="Enter customer name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Category</label>
+                        <Input
+                          value={newCustomer.category}
+                          onChange={(e) => setNewCustomer({ ...newCustomer, category: e.target.value })}
+                          placeholder="e.g., Technology, Manufacturing"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Logo URL</label>
+                      <Input
+                        value={newCustomer.logoUrl}
+                        onChange={(e) => setNewCustomer({ ...newCustomer, logoUrl: e.target.value })}
+                        placeholder="https://example.com/logo.png"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Industry</label>
+                      <Select 
+                        value={newCustomer.industry} 
+                        onValueChange={(value: any) => setNewCustomer({ ...newCustomer, industry: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Aerospace & Defense">Aerospace & Defense</SelectItem>
+                          <SelectItem value="Automotive Manufacturing">Automotive Manufacturing</SelectItem>
+                          <SelectItem value="Pharmaceutical & Biotech">Pharmaceutical & Biotech</SelectItem>
+                          <SelectItem value="Oil & Gas">Oil & Gas</SelectItem>
+                          <SelectItem value="Electronics & Semiconductors">Electronics & Semiconductors</SelectItem>
+                          <SelectItem value="Research Institutions">Research Institutions</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                      <Textarea
+                        value={newCustomer.description}
+                        onChange={(e) => setNewCustomer({ ...newCustomer, description: e.target.value })}
+                        placeholder="Brief description about the customer"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Website (Optional)</label>
+                      <Input
+                        value={newCustomer.website}
+                        onChange={(e) => setNewCustomer({ ...newCustomer, website: e.target.value })}
+                        placeholder="https://customer-website.com"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="featured"
+                        checked={newCustomer.featured}
+                        onChange={(e) => setNewCustomer({ ...newCustomer, featured: e.target.checked })}
+                      />
+                      <label htmlFor="featured" className="text-sm">Featured on homepage</label>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-6">
+                    <Button variant="outline" onClick={() => setShowAddCustomerDialog(false)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleAddCustomer}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={!newCustomer.name || !newCustomer.logoUrl || !newCustomer.industry}
+                    >
+                      Add Customer
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Edit Customer Dialog */}
+            {editingCustomer && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-lg font-semibold">Edit Customer</h3>
+                    <Button
+                      variant="ghost"
+                      onClick={() => setEditingCustomer(null)}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                  <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Customer Name</label>
+                        <Input
+                          value={editingCustomer.name}
+                          onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                          placeholder="Enter customer name"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Category</label>
+                        <Input
+                          value={editingCustomer.category}
+                          onChange={(e) => setEditingCustomer({ ...editingCustomer, category: e.target.value })}
+                          placeholder="e.g., Technology, Manufacturing"
+                        />
+                      </div>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Logo URL</label>
+                      <Input
+                        value={editingCustomer.logoUrl}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, logoUrl: e.target.value })}
+                        placeholder="https://example.com/logo.png"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Industry</label>
+                      <Select 
+                        value={editingCustomer.industry} 
+                        onValueChange={(value: any) => setEditingCustomer({ ...editingCustomer, industry: value })}
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Aerospace & Defense">Aerospace & Defense</SelectItem>
+                          <SelectItem value="Automotive Manufacturing">Automotive Manufacturing</SelectItem>
+                          <SelectItem value="Pharmaceutical & Biotech">Pharmaceutical & Biotech</SelectItem>
+                          <SelectItem value="Oil & Gas">Oil & Gas</SelectItem>
+                          <SelectItem value="Electronics & Semiconductors">Electronics & Semiconductors</SelectItem>
+                          <SelectItem value="Research Institutions">Research Institutions</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                      <Textarea
+                        value={editingCustomer.description || ""}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, description: e.target.value })}
+                        placeholder="Brief description about the customer"
+                        rows={3}
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Website (Optional)</label>
+                      <Input
+                        value={editingCustomer.website || ""}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, website: e.target.value })}
+                        placeholder="https://customer-website.com"
+                      />
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <input
+                        type="checkbox"
+                        id="editFeatured"
+                        checked={editingCustomer.featured}
+                        onChange={(e) => setEditingCustomer({ ...editingCustomer, featured: e.target.checked })}
+                      />
+                      <label htmlFor="editFeatured" className="text-sm">Featured on homepage</label>
+                    </div>
+                  </div>
+                  <div className="flex justify-end space-x-2 mt-6">
+                    <Button variant="outline" onClick={() => setEditingCustomer(null)}>
+                      Cancel
+                    </Button>
+                    <Button 
+                      onClick={handleUpdateCustomer}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                    >
+                      Update Customer
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            )}
+          </TabsContent>
+
           {/* Catalog Tab */}
           <TabsContent value="catalog" className="space-y-6">
             <div className="flex justify-between items-center">
@@ -1676,6 +2141,37 @@ export default function AdminDashboard() {
                     onChange={(e) => setMainCatalog({ ...mainCatalog, description: e.target.value })}
                     placeholder="Complete product specifications and details" 
                   />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium mb-1">Upload Catalog PDF</label>
+                  <div className="flex gap-2">
+                    <Input 
+                      type="file"
+                      accept=".pdf"
+                      onChange={(e) => {
+                        const file = e.target.files?.[0];
+                        if (file) {
+                          // For demo purposes, using a placeholder URL
+                          // In production, you would upload to Replit Object Storage
+                          const fakeUrl = `https://storage.example.com/catalogs/${file.name}`;
+                          const fileSize = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+                          setMainCatalog({ 
+                            ...mainCatalog, 
+                            pdfUrl: fakeUrl,
+                            fileSize: fileSize
+                          });
+                          toast({
+                            title: "File Selected",
+                            description: `${file.name} ready for upload`,
+                          });
+                        }
+                      }}
+                      className="flex-1"
+                    />
+                  </div>
+                  <p className="text-sm text-gray-500 mt-1">
+                    Or enter URL manually below
+                  </p>
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1">PDF URL</label>

@@ -26,6 +26,10 @@ export default function Home() {
     queryKey: ["/api/events"],
   });
 
+  const { data: customers = [] } = useQuery({
+    queryKey: ["/api/customers"],
+  });
+
   // Record website view
   useEffect(() => {
     apiRequest("POST", "/api/analytics/website-views");
@@ -41,20 +45,7 @@ export default function Home() {
     .filter((p) => p.category === "Measuring Instruments")
     .slice(0, 4);
 
-  const customerLogos = [
-    "ACME Corp",
-    "TechFlow",
-    "IndustrialPlus",
-    "PrecisionPro",
-    "MegaManuf",
-    "AutoTech",
-    "AeroSpace Co",
-    "MetalWorks",
-    "FlowDynamics",
-    "CalibratePro",
-    "TestSolutions",
-    "MeasureMax",
-  ];
+  const featuredCustomers = customers.filter(customer => customer.featured);
 
   const whyChooseUsItems = [
     {
@@ -351,8 +342,8 @@ export default function Home() {
 
           <div className="relative">
             <div className="flex space-x-12 scroll-logos">
-              {customerLogos.concat(customerLogos).map((logo, index) => (
-                <CustomerLogo key={index} name={logo} />
+              {featuredCustomers.concat(featuredCustomers).map((customer, index) => (
+                <CustomerLogo key={index} name={customer.name} logoUrl={customer.logoUrl} />
               ))}
             </div>
           </div>
@@ -574,7 +565,22 @@ export default function Home() {
                 </p>
               </div>
 
-              <Button className="bg-maroon-500 text-white px-8 py-3 hover:bg-maroon-600 transition-all transform hover:scale-105 w-full">
+              <Button 
+                className="bg-maroon-500 text-white px-8 py-3 hover:bg-maroon-600 transition-all transform hover:scale-105 w-full"
+                onClick={async () => {
+                  try {
+                    const response = await fetch('/api/catalog/main-catalog');
+                    if (response.ok) {
+                      const catalog = await response.json();
+                      window.open(catalog.pdfUrl, '_blank');
+                    } else {
+                      alert('Catalog not available. Please contact support.');
+                    }
+                  } catch (error) {
+                    alert('Error downloading catalog. Please try again.');
+                  }
+                }}
+              >
                 <Download className="mr-2 h-4 w-4" />
                 Download Catalog (PDF)
               </Button>
