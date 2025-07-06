@@ -108,7 +108,7 @@
   "optionalDependencies": {
     "bufferutil": "^4.0.8"
   },
-  "main": "postcss.config.js",
+  "main": "dist/index.js",
   "author": "",
   "description": ""
 }
