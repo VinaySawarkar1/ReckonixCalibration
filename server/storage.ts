@@ -13,7 +13,15 @@ import {
   MainCatalog,
   InsertMainCatalog,
   Customer,
-  InsertCustomer
+  InsertCustomer,
+  Job,
+  InsertJob,
+  JobApplication,
+  InsertJobApplication,
+  Complaint,
+  ChatbotSummary,
+  Category,
+  InsertCategory
 } from "@shared/schema";
 
 export interface IStorage {
@@ -64,6 +72,16 @@ export interface IStorage {
   createCustomer(customer: InsertCustomer): Promise<Customer>;
   updateCustomer(id: number, customer: Partial<InsertCustomer>): Promise<Customer | undefined>;
   deleteCustomer(id: number): Promise<boolean>;
+
+  // Job methods
+  getAllJobs(): Promise<Job[]>;
+  getJob(id: number): Promise<Job | undefined>;
+  createJob(job: InsertJob): Promise<Job>;
+  deleteJob(id: number): Promise<boolean>;
+
+  // Job Application methods
+  getAllJobApplications(): Promise<JobApplication[]>;
+  createJobApplication(app: InsertJobApplication): Promise<JobApplication>;
 }
 
 export class MemStorage implements IStorage {
@@ -82,6 +100,10 @@ export class MemStorage implements IStorage {
   private currentViewId: number;
   private currentEventId: number;
   private currentCustomerId: number;
+  private jobs: Map<number, Job> = new Map();
+  private jobApplications: Map<number, JobApplication> = new Map();
+  private currentJobId: number = 1;
+  private currentJobAppId: number = 1;
 
   constructor() {
     this.users = new Map();
@@ -115,68 +137,301 @@ export class MemStorage implements IStorage {
 
   private async initializeSampleData() {
     const sampleProducts: InsertProduct[] = [
+      // --- Calibration Systems ---
       {
-        name: "Digital Pressure Calibrator DPC-5000",
+        name: "Resistance Decade Box",
         category: "Calibration Systems",
-        shortDescription: "High-precision digital calibrator for pressure measurement with advanced automation features",
-        fullTechnicalInfo: "Advanced digital pressure calibrator designed for high-precision calibration of pressure measuring instruments. Features automated calibration sequences, data logging capabilities, and compliance with international standards.",
+        subcategory: "Electrical Calibration",
+        shortDescription: "Digital resistance decade box for industrial calibration.",
+        fullTechnicalInfo: "High-accuracy resistance decade box for calibration labs and industrial use. Features robust construction and precise switching.",
         specifications: [
-          { key: "Pressure Range", value: "0 to 1000 PSI (0 to 6895 kPa)" },
-          { key: "Accuracy", value: "±0.025% of reading" },
-          { key: "Resolution", value: "0.001 PSI" },
-          { key: "Operating Temperature", value: "-10°C to +50°C" },
-          { key: "Power Supply", value: "100-240V AC, 50/60Hz" },
-          { key: "Communication", value: "USB 2.0, RS-232, Ethernet" }
+          { key: "Display Type", value: "Digital" },
+          { key: "Usage/Application", value: "Industrial" },
+          { key: "Packing Type", value: "STD Wooden BOX" },
         ],
         featuresBenefits: [
-          "Automated calibration sequences reduce human error",
-          "Comprehensive data logging with export capabilities",
-          "Multi-interface connectivity for flexible integration",
-          "User-friendly calibration software with step-by-step guidance"
+          "High accuracy and stability",
+          "Durable construction",
+          "Easy to operate",
         ],
-        applications: [
-          "Aerospace Industry",
-          "Automotive Manufacturing", 
-          "Pharmaceutical",
-          "Oil & Gas",
-          "Power Generation",
-          "Marine Industry"
+        applications: ["Calibration Labs", "Industrial Plants"],
+        certifications: ["ISO 9001:2015", "CE Marking"],
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80"
         ],
-        certifications: [
-          "ISO 9001:2015",
-          "NIST Traceable",
-          "CE Marking",
-          "ISO 17025",
-          "RoHS Compliant",
-          "FCC Certified"
-        ],
-        imageUrl: "https://images.unsplash.com/photo-1559827260-dc66d52bef19?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600",
-        catalogPdfUrl: ""
+        catalogPdfUrl: "",
+        homeFeatured: false,
       },
       {
-        name: "Temperature Calibrator TC-200",
+        name: "High Resistance Jig",
         category: "Calibration Systems",
-        shortDescription: "Advanced temperature calibration system with multi-point referencing capability",
-        fullTechnicalInfo: "Precision temperature calibrator with wide range coverage and exceptional accuracy for laboratory and field applications.",
+        subcategory: "Electrical Calibration",
+        shortDescription: "High resistance jig for precise calibration tasks.",
+        fullTechnicalInfo: "Precision high resistance jig for laboratory and field calibration. Ensures accurate resistance measurements.",
         specifications: [
-          { key: "Temperature Range", value: "-200°C to +1200°C" },
-          { key: "Accuracy", value: "±0.1°C" },
-          { key: "Stability", value: "±0.05°C" },
-          { key: "Sensor Types", value: "RTD, Thermocouple, Thermistor" }
+          { key: "Accuracy", value: "5.0%" },
+          { key: "Decade Type", value: "Resistance" },
+          { key: "Brand", value: "Reckonix" },
         ],
         featuresBenefits: [
-          "Wide temperature range coverage",
-          "High accuracy and stability",
-          "Multiple sensor type support",
-          "Portable design for field use"
+          "Precision measurement",
+          "Portable design",
         ],
-        applications: ["Pharmaceutical", "Food Processing", "HVAC", "Aerospace"],
-        certifications: ["ISO 9001:2015", "NIST Traceable", "CE Marking"],
-        imageUrl: "https://images.unsplash.com/photo-1581092921461-eab62e97a780?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
+        applications: ["Calibration Labs", "R&D"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "MEATEST M160i PRECISION DC CALIBRATOR",
+        category: "Calibration Systems",
+        subcategory: "Electrical Calibration",
+        shortDescription: "Precision DC calibrator for laboratory use.",
+        fullTechnicalInfo: "High-precision DC calibrator for voltage and current calibration. Suitable for laboratory and industrial applications.",
+        specifications: [
+          { key: "Accuracy", value: "0.01%" },
+          { key: "Display Type", value: "Digital" },
+          { key: "Usage/Application", value: "Laboratory" },
+        ],
+        featuresBenefits: [
+          "High accuracy",
+          "Digital display",
+        ],
+        applications: ["Laboratory", "Calibration Centers"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "MEATEST 9010+ MULTIFUNCTION CALIBRATOR",
+        category: "Calibration Systems",
+        subcategory: "Electrical Calibration",
+        shortDescription: "Multifunction calibrator for laboratory and field use.",
+        fullTechnicalInfo: "Versatile multifunction calibrator for voltage, current, and resistance. Suitable for a wide range of calibration tasks.",
+        specifications: [
+          { key: "Model Name/Number", value: "MEATEST 9010+" },
+          { key: "Display Type", value: "Digital" },
+          { key: "Usage/Application", value: "Laboratory" },
+        ],
+        featuresBenefits: [
+          "Multifunction capability",
+          "Portable design",
+        ],
+        applications: ["Laboratory", "Field Calibration"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1465101178521-c1a9136a3b99?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1465101178521-c1a9136a3b99?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "MEATEST 9010 MULTIFUNCTION CALIBRATOR",
+        category: "Calibration Systems",
+        subcategory: "Electrical Calibration",
+        shortDescription: "Multiproduct calibrator for laboratory use.",
+        fullTechnicalInfo: "High-accuracy multiproduct calibrator for voltage, current, and resistance. Ideal for calibration labs.",
+        specifications: [
+          { key: "Model Name/Number", value: "MEATEST 9010" },
+          { key: "Display Type", value: "Digital" },
+          { key: "Usage/Application", value: "Laboratory" },
+        ],
+        featuresBenefits: [
+          "High accuracy",
+          "Multiproduct capability",
+        ],
+        applications: ["Calibration Labs"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "Tape And Scale Calibration Unit",
+        category: "Calibration Systems",
+        subcategory: "Dimensional Calibration",
+        shortDescription: "For calibration of tapes and scales up to 1000mm.",
+        fullTechnicalInfo: "Precision calibration unit for tapes and scales. Suitable for industrial and laboratory use.",
+        specifications: [
+          { key: "Service Location", value: "pan india" },
+          { key: "Measuring Range", value: "upto 1000mm" },
+        ],
+        featuresBenefits: [
+          "Wide measuring range",
+          "Robust construction",
+        ],
+        applications: ["Industrial", "Laboratory"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "Analog Dial Calibration Tester",
+        category: "Calibration Systems",
+        subcategory: "Mechanical Calibration",
+        shortDescription: "Digital analog dial calibration tester for industrial use.",
+        fullTechnicalInfo: "High-accuracy analog dial calibration tester for industrial and laboratory use.",
+        specifications: [
+          { key: "Accuracy", value: "0.01%" },
+          { key: "Display Type", value: "Digital" },
+          { key: "Usage/Application", value: "Industrial" },
+        ],
+        featuresBenefits: [
+          "High accuracy",
+          "Digital display",
+        ],
+        applications: ["Industrial", "Calibration Labs"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1506744038136-46273834b3fb?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "Stainless Steel Electronic Dial Calibration Tester",
+        category: "Calibration Systems",
+        subcategory: "Mechanical Calibration",
+        shortDescription: "Stainless steel electronic dial calibration tester for industrial use.",
+        fullTechnicalInfo: "Durable stainless steel electronic dial calibration tester for industrial and laboratory use.",
+        specifications: [
+          { key: "Material", value: "Stainless Steel" },
+          { key: "Display Type", value: "Digital" },
+          { key: "Usage/Application", value: "Industrial" },
+        ],
+        featuresBenefits: [
+          "Stainless steel construction",
+          "Digital display",
+        ],
+        applications: ["Industrial", "Calibration Labs"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1465101178521-c1a9136a3b99?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1465101178521-c1a9136a3b99?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1518770660439-4636190af475?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "Dial Calibration Tester",
+        category: "Calibration Systems",
+        subcategory: "Mechanical Calibration",
+        shortDescription: "Digital dial calibration tester for industrial use.",
+        fullTechnicalInfo: "High-accuracy dial calibration tester for industrial and laboratory use.",
+        specifications: [
+          { key: "Model Name/Number", value: "RXDCT25" },
+          { key: "Material", value: "SS with sylvac dial" },
+          { key: "Display Type", value: "Digital" },
+        ],
+        featuresBenefits: [
+          "High accuracy",
+          "Digital display",
+        ],
+        applications: ["Industrial", "Calibration Labs"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1465101046530-73398c7f28ca?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "Steel Caliper Checker",
+        category: "Calibration Systems",
+        subcategory: "Dimensional Calibration",
+        shortDescription: "Steel caliper checker for laboratory and industrial use.",
+        fullTechnicalInfo: "Precision steel caliper checker for calibration of calipers up to 1000 mm.",
+        specifications: [
+          { key: "Measuring Range", value: "0 - 1000 mm" },
+          { key: "Material", value: "Stainless Steel" },
+          { key: "Usage/Application", value: "Laboratory" },
+        ],
+        featuresBenefits: [
+          "Wide measuring range",
+          "Stainless steel construction",
+        ],
+        applications: ["Laboratory", "Industrial"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1464983953574-0892a716854b?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      // --- Testing Systems ---
+      {
+        name: "Universal Testing Machine UTM-200",
+        category: "Testing Systems",
+        subcategory: "Universal Testing Machines",
+        shortDescription: "Universal testing machine for tensile, compression, and flexural testing.",
+        fullTechnicalInfo: "High-capacity universal testing machine designed for comprehensive material characterization and quality control testing.",
+        specifications: [
+          { key: "Load Capacity", value: "200 kN" },
+          { key: "Load Accuracy", value: "±0.5% of indicated value" },
+          { key: "Crosshead Speed", value: "0.001 to 500 mm/min" },
+          { key: "Test Space", value: "600 mm" }
+        ],
+        featuresBenefits: [
+          "High load capacity for various materials",
+          "Precise load and displacement control",
+          "Comprehensive test software package",
+          "Automated test sequence capability"
+        ],
+        applications: ["Materials Research", "Quality Control", "R&D Labs", "Manufacturing"],
+        certifications: ["ISO 9001:2015", "ASTM Standards", "CE Marking"],
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
       },
       {
         name: "Material Testing Machine MTM-100",
         category: "Testing Systems", 
+        subcategory: "Universal Testing Machines",
         shortDescription: "Universal testing machine for tensile, compression, and flexural testing",
         fullTechnicalInfo: "High-capacity universal testing machine designed for comprehensive material characterization and quality control testing.",
         specifications: [
@@ -193,29 +448,229 @@ export class MemStorage implements IStorage {
         ],
         applications: ["Materials Research", "Quality Control", "R&D Labs", "Manufacturing"],
         certifications: ["ISO 9001:2015", "ASTM Standards", "CE Marking"],
-        imageUrl: "https://images.unsplash.com/photo-1565514020179-026b92b84bb6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
       },
+      // --- Measuring Instruments ---
       {
-        name: "Digital Multimeter DMM-6500",
+        name: "Vision Measuring Machine Manual 200",
         category: "Measuring Instruments",
-        shortDescription: "High-precision digital multimeter with advanced measurement capabilities", 
-        fullTechnicalInfo: "Professional-grade digital multimeter offering exceptional accuracy and versatility for electrical measurements.",
+        subcategory: "Optical Measurement Systems",
+        shortDescription: "Manual vision measuring machine for industrial applications.",
+        fullTechnicalInfo: "Manual vision measuring machine with high accuracy and robust construction. Suitable for industrial and laboratory use.",
         specifications: [
-          { key: "DC Voltage", value: "100 mV to 1000 V" },
-          { key: "AC Voltage", value: "100 mV to 750 V" },
-          { key: "Resistance", value: "100 Ω to 100 MΩ" },
-          { key: "Accuracy", value: "±0.0035%" }
+          { key: "Measuring Software", value: "Reckonix" },
+          { key: "Automation Grade", value: "Manual" }
         ],
         featuresBenefits: [
-          "High accuracy measurements",
-          "Wide measurement range",
-          "Data logging capability",
-          "PC connectivity"
+          "High accuracy",
+          "Manual operation"
         ],
-        applications: ["Electronics Testing", "Electrical Maintenance", "R&D", "Education"],
-        certifications: ["ISO 9001:2015", "CE Marking", "RoHS Compliant"],
-        imageUrl: "https://images.unsplash.com/photo-1581092795360-fd1ca04f0952?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
-      }
+        applications: ["Industry", "Laboratory"],
+        certifications: ["ISO 9001:2015"],
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      // --- New Measuring Instruments from ATQ Metro ---
+      {
+        name: "ATQ Metro Digital Caliper",
+        category: "Measuring Instruments",
+        subcategory: "Dimensional Measurement Systems",
+        shortDescription: "High-precision digital caliper for accurate dimensional measurements.",
+        fullTechnicalInfo: "Professional digital caliper with LCD display and stainless steel construction. Features zero setting, data output, and IP67 protection.",
+        specifications: [
+          { key: "Measuring Range", value: "0-150mm" },
+          { key: "Resolution", value: "0.01mm" },
+          { key: "Accuracy", value: "±0.02mm" },
+          { key: "Display", value: "LCD Digital" },
+          { key: "Material", value: "Stainless Steel" }
+        ],
+        featuresBenefits: [
+          "High precision measurement",
+          "Digital LCD display",
+          "Stainless steel construction",
+          "IP67 protection",
+          "Data output capability"
+        ],
+        applications: ["Manufacturing", "Quality Control", "Laboratory", "Metrology"],
+        certifications: ["ISO 9001:2015", "CE Marking"],
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: true,
+      },
+      {
+        name: "ATQ Metro Micrometer Set",
+        category: "Measuring Instruments",
+        subcategory: "Dimensional Measurement Systems",
+        shortDescription: "Precision micrometer set for accurate dimensional measurements.",
+        fullTechnicalInfo: "Complete micrometer set with digital display and carbide-tipped measuring faces. Includes calibration certificate and protective case.",
+        specifications: [
+          { key: "Measuring Range", value: "0-25mm, 25-50mm, 50-75mm" },
+          { key: "Resolution", value: "0.001mm" },
+          { key: "Accuracy", value: "±0.002mm" },
+          { key: "Display", value: "Digital LCD" },
+          { key: "Material", value: "Hardened Steel" }
+        ],
+        featuresBenefits: [
+          "High precision measurement",
+          "Digital display",
+          "Carbide-tipped faces",
+          "Calibration certificate included",
+          "Protective case"
+        ],
+        applications: ["Precision Engineering", "Quality Control", "Metrology", "Laboratory"],
+        certifications: ["ISO 9001:2015", "CE Marking"],
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "ATQ Metro Height Gauge",
+        category: "Measuring Instruments",
+        subcategory: "Dimensional Measurement Systems",
+        shortDescription: "Digital height gauge for precise height and depth measurements.",
+        fullTechnicalInfo: "Professional digital height gauge with large LCD display and magnetic base. Features zero setting, data output, and high accuracy.",
+        specifications: [
+          { key: "Measuring Range", value: "0-300mm" },
+          { key: "Resolution", value: "0.01mm" },
+          { key: "Accuracy", value: "±0.03mm" },
+          { key: "Display", value: "Large LCD" },
+          { key: "Base", value: "Magnetic" }
+        ],
+        featuresBenefits: [
+          "High precision measurement",
+          "Large LCD display",
+          "Magnetic base",
+          "Data output capability",
+          "Zero setting function"
+        ],
+        applications: ["Manufacturing", "Quality Control", "Metrology", "Laboratory"],
+        certifications: ["ISO 9001:2015", "CE Marking"],
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      // --- New Testing Instruments from Sushma Industry ---
+      {
+        name: "Sushma Universal Testing Machine",
+        category: "Testing Systems",
+        subcategory: "Universal Testing Machines",
+        shortDescription: "Computer-controlled universal testing machine for material testing.",
+        fullTechnicalInfo: "Advanced universal testing machine with computer control, load cell, and extensometer. Suitable for tensile, compression, and flexural testing.",
+        specifications: [
+          { key: "Maximum Load", value: "1000kN" },
+          { key: "Load Accuracy", value: "±0.5%" },
+          { key: "Control System", value: "Computer Controlled" },
+          { key: "Test Types", value: "Tensile, Compression, Flexural" },
+          { key: "Display", value: "Digital LCD" }
+        ],
+        featuresBenefits: [
+          "Computer-controlled operation",
+          "High load capacity",
+          "Multiple test types",
+          "Precise load measurement",
+          "Data logging capability"
+        ],
+        applications: ["Material Testing", "Quality Control", "Research & Development", "Laboratory"],
+        certifications: ["ISO 9001:2015", "ASTM Standards"],
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: true,
+      },
+      {
+        name: "Sushma Hardness Tester",
+        category: "Testing Systems",
+        subcategory: "Universal Testing Machines",
+        shortDescription: "Digital hardness tester for material hardness measurement.",
+        fullTechnicalInfo: "Advanced digital hardness tester with automatic loading and measurement. Supports multiple hardness scales including Rockwell, Brinell, and Vickers.",
+        specifications: [
+          { key: "Hardness Scales", value: "Rockwell, Brinell, Vickers" },
+          { key: "Load Range", value: "1-3000kgf" },
+          { key: "Accuracy", value: "±1%" },
+          { key: "Display", value: "Digital LCD" },
+          { key: "Control", value: "Automatic" }
+        ],
+        featuresBenefits: [
+          "Multiple hardness scales",
+          "Automatic operation",
+          "High accuracy",
+          "Digital display",
+          "Data storage capability"
+        ],
+        applications: ["Material Testing", "Quality Control", "Metallurgy", "Laboratory"],
+        certifications: ["ISO 9001:2015", "ASTM Standards"],
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
+      {
+        name: "Sushma Impact Testing Machine",
+        category: "Testing Systems",
+        subcategory: "Dynamic and Fatigue Testing Machines",
+        shortDescription: "Charpy impact testing machine for material toughness evaluation.",
+        fullTechnicalInfo: "Computer-controlled Charpy impact testing machine with automatic pendulum release and energy measurement. Suitable for impact testing of metals and plastics.",
+        specifications: [
+          { key: "Impact Energy", value: "300J" },
+          { key: "Accuracy", value: "±1%" },
+          { key: "Control System", value: "Computer Controlled" },
+          { key: "Test Type", value: "Charpy Impact" },
+          { key: "Display", value: "Digital LCD" }
+        ],
+        featuresBenefits: [
+          "Computer-controlled operation",
+          "Automatic pendulum release",
+          "High accuracy measurement",
+          "Data logging capability",
+          "Safety features"
+        ],
+        applications: ["Material Testing", "Quality Control", "Metallurgy", "Research"],
+        certifications: ["ISO 9001:2015", "ASTM Standards"],
+        imageUrl: "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+        imageGallery: [
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1517694712202-14dd9538aa97?auto=format&fit=crop&w=800&q=80",
+          "https://images.unsplash.com/photo-1519125323398-675f0ddb6308?auto=format&fit=crop&w=800&q=80"
+        ],
+        catalogPdfUrl: "",
+        homeFeatured: false,
+      },
     ];
 
     for (const product of sampleProducts) {
@@ -559,6 +1014,124 @@ export class MemStorage implements IStorage {
   async deleteCustomer(id: number): Promise<boolean> {
     return this.customers.delete(id);
   }
+
+  // Job methods
+  async getAllJobs(): Promise<Job[]> {
+    return Array.from(this.jobs.values());
+  }
+
+  async getJob(id: number): Promise<Job | undefined> {
+    return this.jobs.get(id);
+  }
+
+  async createJob(insertJob: InsertJob): Promise<Job> {
+    const job: Job = {
+      id: this.currentJobId++,
+      ...insertJob,
+      createdAt: new Date()
+    };
+    this.jobs.set(job.id, job);
+    return job;
+  }
+
+  async deleteJob(id: number): Promise<boolean> {
+    return this.jobs.delete(id);
+  }
+
+  // Job Application methods
+  async getAllJobApplications(): Promise<JobApplication[]> {
+    return Array.from(this.jobApplications.values());
+  }
+
+  async createJobApplication(app: InsertJobApplication): Promise<JobApplication> {
+    const jobApp: JobApplication = {
+      id: this.currentJobAppId++,
+      ...app,
+      createdAt: new Date()
+    };
+    this.jobApplications.set(jobApp.id, jobApp);
+    return jobApp;
+  }
 }
 
 export const storage = new MemStorage();
+
+// In-memory complaints storage (replace with DB in production)
+export const complaints: Complaint[] = [];
+
+export function addComplaint(complaint: Complaint) {
+  complaints.push(complaint);
+}
+
+export function getComplaints() {
+  return complaints;
+}
+
+export const chatbotSummaries: ChatbotSummary[] = [];
+
+export function addChatbotSummary(summary: ChatbotSummary) {
+  chatbotSummaries.push(summary);
+}
+
+export function getChatbotSummaries() {
+  return chatbotSummaries;
+}
+
+export function getAllProducts() {
+  return storage.getAllProducts();
+}
+
+// In-memory categories
+let categories: Category[] = [
+  { id: 1, name: "Calibration Systems", subcategories: [
+    "Pressure Calibration",
+    "Temperature Calibration",
+    "Flow Calibration",
+    "Electrical Calibration",
+    "Mechanical Calibration",
+    "Dimensional Calibration",
+    "Mass and Weight Calibration",
+    "Thermal Calibration"
+  ] },
+  { id: 2, name: "Measuring Instruments", subcategories: [
+    "Dimensional Measurement Systems",
+    "Optical Measurement Systems",
+    "Coordinate Measurement Systems",
+    "Roughness Measurement Systems",
+    "Profile Measurement Systems"
+  ] },
+  { id: 3, name: "Testing Systems", subcategories: [
+    "Universal Testing Machines",
+    "Dynamic and Fatigue Testing Machines",
+    "Torsion Testing Machines",
+    "Single Purpose Test Machines",
+    "Customized Testing Solutions"
+  ] }
+];
+
+export const getAllCategories = async (): Promise<Category[]> => {
+  return categories;
+};
+
+export const createCategory = async (data: InsertCategory): Promise<Category> => {
+  const newCategory: Category = {
+    id: categories.length ? Math.max(...categories.map(c => c.id)) + 1 : 1,
+    ...data
+  };
+  categories.push(newCategory);
+  return newCategory;
+};
+
+export const updateCategory = async (id: number, data: Partial<InsertCategory>): Promise<Category | null> => {
+  const idx = categories.findIndex(c => c.id === id);
+  if (idx === -1) return null;
+  categories[idx] = { ...categories[idx], ...data };
+  return categories[idx];
+};
+
+export const deleteCategory = async (id: number): Promise<boolean> => {
+  const idx = categories.findIndex(c => c.id === id);
+  if (idx === -1) return false;
+  categories.splice(idx, 1);
+  return true;
+};

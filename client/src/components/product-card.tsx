@@ -2,7 +2,7 @@ import { Link } from "wouter";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
-import { ShoppingCart, Eye } from "lucide-react";
+import { ShoppingCart } from "lucide-react";
 import { useCart } from "../context/cart-context";
 import { useToast } from "@/hooks/use-toast";
 import { motion } from "framer-motion";
@@ -43,51 +43,48 @@ export default function ProductCard({ product }: ProductCardProps) {
       whileHover={{ y: -5 }}
       transition={{ duration: 0.2 }}
     >
-      <Card className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition-all h-full">
+      <Card className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all h-full w-64 min-w-[220px] max-w-xs">
         <Link href={`/products/${product.id}`}>
           <div className="relative">
             <img 
               src={product.imageUrl} 
               alt={product.name}
-              className="w-full h-48 object-cover"
+              className="w-full h-36 object-cover"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
-            <div className="absolute top-4 right-4">
-              <div className="bg-white/90 rounded-full p-2 flex items-center text-xs text-gray-600">
-                <Eye className="h-3 w-3 mr-1" />
-                {product.views}
-              </div>
-            </div>
           </div>
         </Link>
         
-        <CardContent className="p-6 flex flex-col h-full">
-          <div className="mb-3">
-            <Badge className={getCategoryColor(product.category)}>
+        <CardContent className="p-3 flex flex-col h-full">
+          <div className="mb-2 flex flex-row items-center gap-1.5">
+            <Badge className={getCategoryColor(product.category) + " rounded-full font-bold text-[10px] px-2 py-1"}>
               {product.category.replace(" Systems", "").replace(" Instruments", "")}
+            </Badge>
+            <Badge className="bg-green-100 text-green-700 rounded-full font-bold text-[10px] px-2 py-1">
+              {product.subcategory}
             </Badge>
           </div>
           
           <Link href={`/products/${product.id}`} className="flex-1">
-            <h4 className="font-semibold text-lg text-gray-900 mb-2 hover:text-maroon-500 transition-colors line-clamp-2">
+            <h4 className="font-semibold text-base text-gray-900 mb-1 hover:text-maroon-500 transition-colors line-clamp-2">
               {product.name}
             </h4>
-            <p className="text-gray-600 text-sm mb-4 line-clamp-3 leading-relaxed">
+            <p className="text-gray-600 text-xs mb-3 line-clamp-3 leading-snug">
               {product.shortDescription}
             </p>
           </Link>
           
-          <div className="flex justify-between items-center mt-auto pt-4 border-t">
+          <div className="flex justify-between items-center mt-auto pt-3 border-t">
             <Link 
               href={`/products/${product.id}`}
-              className="text-maroon-500 hover:text-maroon-600 font-medium text-sm transition-colors"
+              className="text-maroon-500 hover:text-maroon-600 font-medium text-xs transition-colors"
             >
               View Details
             </Link>
             <Button 
               onClick={handleAddToCart}
               size="sm"
-              className="bg-maroon-500 text-white hover:bg-maroon-600 transition-all"
+              className="bg-maroon-500 text-white hover:bg-maroon-600 transition-all px-2 py-1 text-xs"
             >
               <ShoppingCart className="h-3 w-3 mr-1" />
               Add to Quote

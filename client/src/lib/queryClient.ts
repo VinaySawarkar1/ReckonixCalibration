@@ -23,6 +23,21 @@ export async function apiRequest(
   return res;
 }
 
+export async function apiRequestWithFiles(
+  method: string,
+  url: string,
+  formData: FormData,
+): Promise<Response> {
+  const res = await fetch(url, {
+    method,
+    body: formData, // Don't set Content-Type header for FormData
+    credentials: "include",
+  });
+
+  await throwIfResNotOk(res);
+  return res;
+}
+
 type UnauthorizedBehavior = "returnNull" | "throw";
 export const getQueryFn: <T>(options: {
   on401: UnauthorizedBehavior;

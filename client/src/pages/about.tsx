@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Building, Factory, Users, Globe } from "lucide-react";
+import { Building, Factory, Users, Globe, MapPin } from "lucide-react";
 
 export default function About() {
   const teamMembers = [
@@ -14,7 +14,27 @@ export default function About() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="hero-bg text-white py-16">
+      <section className="relative bg-maroon-500 text-white py-6 overflow-hidden">
+        {/* Geometric Line Pattern Overlay */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g stroke="white" stroke-width="2" opacity="0.5">
+            <polyline points="0,100 300,100 400,200 700,200" />
+            <polyline points="200,0 500,0 600,100 900,100" />
+            <polyline points="400,200 700,200 800,300 1100,300" />
+            <polyline points="600,100 900,100 1000,200 1300,200" />
+            <polyline points="800,300 1100,300 1200,400 1440,400" />
+            <polyline points="1000,200 1300,200 1400,300 1440,300" />
+            <polyline points="100,50 400,50 500,150 800,150" />
+            <polyline points="300,150 600,150 700,250 1000,250" />
+            <polyline points="500,250 800,250 900,350 1200,350" />
+            <polyline points="700,50 1000,50 1100,150 1400,150" />
+            <polyline points="900,150 1200,150 1300,250 1440,250" />
+            <polyline points="1100,250 1400,250 1440,350 1440,350" />
+            <polyline points="0,200 200,200 300,300 500,300" />
+            <polyline points="200,300 400,300 500,400 700,400" />
+            <polyline points="600,350 900,350 1000,400 1200,400" />
+          </g>
+        </svg>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center"
@@ -22,7 +42,7 @@ export default function About() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 className="font-cinzel text-4xl md:text-5xl font-bold mb-6">About Reckonix</h1>
+            <h1 className="font-cinzel text-3xl md:text-4xl font-bold mb-6 heading-white">About Reckonix</h1>
             <p className="text-xl text-gray-200 max-w-3xl mx-auto">
               Two decades of precision engineering excellence, delivering world-class calibration, testing, and measuring solutions
             </p>
@@ -155,41 +175,70 @@ export default function About() {
                   </p>
                   <p className="text-gray-600 mb-2"><strong>Phone:</strong> +91 22 1234 5678</p>
                   <p className="text-gray-600 mb-4"><strong>Email:</strong> info@reckonix.com</p>
-                  <div className="bg-gray-200 h-48 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <Globe className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm">Google Maps Integration</p>
-                    </div>
+                  <div className="bg-gray-200 h-48 rounded-lg flex items-center justify-center mb-4">
+                    <iframe
+                      title="Corporate Office Map"
+                      src="https://www.google.com/maps?q=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034&output=embed"
+                      width="100%"
+                      height="180"
+                      style={{ border: 0 }}
+                      allowFullScreen={true}
+                      loading="lazy"
+                    ></iframe>
+                    <a
+                      href="https://www.google.com/maps/dir/?api=1&destination=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-maroon-500 hover:underline text-xs flex items-center mt-2 absolute bottom-2 left-2"
+                    >
+                      <MapPin className="h-4 w-4 mr-1" /> Get Directions
+                    </a>
                   </div>
                 </div>
               </div>
             </motion.div>
 
+
+
             <motion.div 
               className="bg-white rounded-xl shadow-lg p-8"
-              initial={{ opacity: 0, x: 30 }}
+              initial={{ opacity: 0, x: -30 }}
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.2 }}
+              transition={{ duration: 0.6, delay: 0.3 }}
             >
               <div className="flex items-start">
-                <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-6 flex-shrink-0">
-                  <Factory className="h-6 w-6 text-white" />
+                <div className="w-12 h-12 bg-maroon-500 rounded-full flex items-center justify-center mr-6 flex-shrink-0">
+                  <Building className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-xl text-gray-900 mb-3">Manufacturing Unit</h3>
+                  <h3 className="font-semibold text-xl text-gray-900 mb-3">Workshop</h3>
                   <p className="text-gray-600 mb-4">
-                    456 Manufacturing Lane<br />
-                    Industrial Zone, Pune 411001<br />
-                    Maharashtra, India
+                    Plot No. BG/PAP3, Unit F2, MIDC,<br />
+                    MIDC Road, Bhosari,<br />
+                    Pune, Maharashtra 411026
                   </p>
-                  <p className="text-gray-600 mb-2"><strong>Phone:</strong> +91 20 9876 5432</p>
-                  <p className="text-gray-600 mb-4"><strong>Email:</strong> factory@reckonix.com</p>
-                  <div className="bg-gray-200 h-48 rounded-lg flex items-center justify-center">
-                    <div className="text-center">
-                      <Globe className="h-8 w-8 text-gray-400 mx-auto mb-2" />
-                      <p className="text-gray-500 text-sm">Google Maps Integration</p>
-                    </div>
+                  <p className="text-gray-600 mb-2"><strong>Phone:</strong> 9175240313</p>
+                  <p className="text-gray-600 mb-4"><strong>Email:</strong> sales@reckonix.com</p>
+                  <div className="bg-gray-200 h-48 rounded-lg flex items-center justify-center mb-4">
+                    <iframe
+                      title="Workshop Map"
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3780.9394956883684!2d73.82740987417215!3d18.621790966076567!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e5c1527d61%3A0x22027655dc385965!2sReckonix%20(%20Work%20Shop%20)!5e0!3m2!1sen!2sin!4v1751660068426!5m2!1sen!2sin"
+                      width="100%"
+                      height="180"
+                      style={{ border: 0 }}
+                      allowFullScreen={true}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    ></iframe>
+                    <a
+                      href="https://maps.app.goo.gl/g7b7fjFM8Wb4Ynrc8"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-maroon-500 hover:underline text-xs flex items-center mt-2 absolute bottom-2 left-2"
+                    >
+                      <MapPin className="h-4 w-4 mr-1" /> Get Directions
+                    </a>
                   </div>
                 </div>
               </div>

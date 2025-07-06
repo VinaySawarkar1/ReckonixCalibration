@@ -1,5 +1,4 @@
-
-import { useState, useEffect } from "react";
+import React, { useReducer, useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -22,12 +21,162 @@ import {
   Edit,
   Trash2,
   Search,
-  X
+  X,
+  FolderOpen
 } from "lucide-react";
 import { useAuth } from "../../context/auth-context";
 import { useToast } from "@/hooks/use-toast";
 import { useLocation } from "wouter";
-import { apiRequest } from "@/lib/queryClient";
+import { apiRequest, apiRequestWithFiles } from "@/lib/queryClient";
+import { Link } from "wouter";
+import type { Product, QuoteRequest, ContactMessage } from "../../../../shared/schema";
+import ProductFormV2 from "./product-form-v2";
+
+// Subcategories mapping for product categories
+const subcategories: Record<string, string[]> = {
+  "Calibration Systems": [
+    "Electrical Calibration",
+    "Mechanical Calibration",
+    "Thermal Calibration",
+    "Pressure Calibration"
+  ],
+  "Testing Machines": [
+    "Universal Testing Machine",
+    "Compression Testing Machine",
+    "Tensile Testing Machine"
+  ],
+  "Measuring Instruments": [
+    "Micrometers",
+    "Calipers",
+    "Height Gauges"
+  ],
+  // Add more categories and subcategories as needed
+};
+
+// Define initialProduct outside the component for stable reference
+const initialProduct = {
+  name: "",
+  category: "Calibration Systems" as const,
+  subcategory: "",
+  shortDescription: "",
+  fullTechnicalInfo: "",
+  specifications: [{ key: "", value: "" }],
+  featuresBenefits: [""],
+  applications: [""],
+  certifications: [""],
+  imageUrl: "",
+  imageGallery: [],
+  catalogPdfUrl: "",
+  datasheetPdfUrl: "",
+  technicalDetails: {
+    dimensions: "",
+    weight: "",
+    powerRequirements: "",
+    operatingConditions: "",
+    warranty: "",
+    compliance: []
+  }
+};
+
+function productReducer(state, action) {
+  return { ...state, [action.field]: action.value };
+}
+
+const AdminJobs: React.FC = () => {
+  const [jobs, setJobs] = useState([]);
+  const [applications, setApplications] = useState([]);
+  const [form, setForm] = useState({
+    title: '',
+    location: '',
+    experience: '',
+    description: '',
+  });
+  const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    fetch('/api/jobs').then(res => res.json()).then(setJobs);
+    fetch('/api/applications').then(res => res.json()).then(setApplications);
+  }, []);
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const res = await fetch('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    if (res.ok) {
+      setMessage('Job added!');
+      setForm({ title: '', location: '', experience: '', description: '' });
+      fetch('/api/jobs').then(res => res.json()).then(setJobs);
+    } else {
+      setMessage('Failed to add job.');
+    }
+  };
+
+  return (
+    <div className="mt-12">
+      <h2 className="text-2xl font-bold mb-4">Job Management</h2>
+      <form className="bg-gray-50 p-4 rounded mb-8" onSubmit={handleSubmit}>
+        <div className="mb-2">
+          <input name="title" value={form.title} onChange={handleChange} required placeholder="Job Title" className="border p-2 w-full" />
+        </div>
+        <div className="mb-2">
+          <input name="location" value={form.location} onChange={handleChange} required placeholder="Location" className="border p-2 w-full" />
+        </div>
+        <div className="mb-2">
+          <input name="experience" value={form.experience} onChange={handleChange} required placeholder="Experience" className="border p-2 w-full" />
+        </div>
+        <div className="mb-2">
+          <textarea name="description" value={form.description} onChange={handleChange} required placeholder="Description" className="border p-2 w-full" />
+        </div>
+        <button className="bg-maroon-500 text-white px-4 py-2 rounded" type="submit">Add Job</button>
+        {message && <div className="mt-2 text-green-600">{message}</div>}
+      </form>
+      <h3 className="text-xl font-semibold mb-2">Current Jobs</h3>
+      <ul className="mb-8">
+        {jobs.map((job: any) => (
+          <li key={job.id} className="mb-2 p-2 border rounded bg-white">
+            <div className="font-bold">{job.title}</div>
+            <div className="text-sm text-gray-600">{job.location} | {job.experience}</div>
+            <div className="text-gray-700">{job.description}</div>
+          </li>
+        ))}
+      </ul>
+      <h3 className="text-xl font-semibold mb-2">Job Applications</h3>
+      <table className="w-full bg-white rounded shadow">
+        <thead>
+          <tr>
+            <th className="p-2 border">Name</th>
+            <th className="p-2 border">Email</th>
+            <th className="p-2 border">Location</th>
+            <th className="p-2 border">Experience</th>
+            <th className="p-2 border">Job</th>
+            <th className="p-2 border">Resume</th>
+          </tr>
+        </thead>
+        <tbody>
+          {applications.map((app: any) => (
+            <tr key={app.id}>
+              <td className="p-2 border">{app.name}</td>
+              <td className="p-2 border">{app.email}</td>
+              <td className="p-2 border">{app.location}</td>
+              <td className="p-2 border">{app.experience}</td>
+              <td className="p-2 border">{app.jobTitle}</td>
+              <td className="p-2 border">
+                <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-maroon-500 underline">Download</a>
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+};
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -39,28 +188,11 @@ export default function AdminDashboard() {
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [showAddProductDialog, setShowAddProductDialog] = useState(false);
   const [editingProduct, setEditingProduct] = useState<any>(null);
-  const [newProduct, setNewProduct] = useState({
-    name: "",
-    category: "Calibration Systems" as const,
-    shortDescription: "",
-    fullTechnicalInfo: "",
-    specifications: [{ key: "", value: "" }],
-    featuresBenefits: [""],
-    applications: [""],
-    certifications: [""],
-    imageUrl: "",
-    imageGallery: [],
-    catalogPdfUrl: "",
-    datasheetPdfUrl: "",
-    technicalDetails: {
-      dimensions: "",
-      weight: "",
-      powerRequirements: "",
-      operatingConditions: "",
-      warranty: "",
-      compliance: []
-    }
-  });
+  const [newProduct, dispatchNewProduct] = useReducer(productReducer, initialProduct);
+
+  // File upload state
+  const [selectedFiles, setSelectedFiles] = useState<File[]>([]);
+  const [editingSelectedFiles, setEditingSelectedFiles] = useState<File[]>([]);
 
   const [showAddEventDialog, setShowAddEventDialog] = useState(false);
   const [editingEvent, setEditingEvent] = useState<any>(null);
@@ -99,15 +231,17 @@ export default function AdminDashboard() {
   }, [user, setLocation]);
 
   // Fetch data
-  const { data: products = [] } = useQuery({
+  const { data: products = [] } = useQuery<Product[]>({
     queryKey: ["/api/products"],
   });
 
-  const { data: quotes = [] } = useQuery({
+  const safeProducts = Array.isArray(products) ? products : [];
+
+  const { data: quotes = [] } = useQuery<QuoteRequest[]>({
     queryKey: ["/api/quotes"],
   });
 
-  const { data: messages = [] } = useQuery({
+  const { data: messages = [] } = useQuery<ContactMessage[]>({
     queryKey: ["/api/messages"],
   });
 
@@ -238,7 +372,10 @@ export default function AdminDashboard() {
 
   // Create product mutation
   const createProduct = useMutation({
-    mutationFn: (productData: any) => apiRequest("POST", "/api/products", productData),
+    mutationFn: async (formData: FormData) => {
+      const response = await apiRequestWithFiles("POST", "/api/products", formData);
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       setShowAddProductDialog(false);
@@ -259,8 +396,10 @@ export default function AdminDashboard() {
 
   // Update product mutation
   const updateProduct = useMutation({
-    mutationFn: ({ id, data }: { id: number; data: any }) =>
-      apiRequest("PUT", `/api/products/${id}`, data),
+    mutationFn: async ({ id, formData }: { id: number; formData: FormData }) => {
+      const response = await apiRequestWithFiles("PUT", `/api/products/${id}`, formData);
+      return response.json();
+    },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/products"] });
       setEditingProduct(null);
@@ -298,28 +437,27 @@ export default function AdminDashboard() {
   });
 
   const resetProductForm = () => {
-    setNewProduct({
-      name: "",
-      category: "Calibration Systems",
-      shortDescription: "",
-      fullTechnicalInfo: "",
-      specifications: [{ key: "", value: "" }],
-      featuresBenefits: [""],
-      applications: [""],
-      certifications: [""],
-      imageUrl: "",
-      imageGallery: [],
-      catalogPdfUrl: "",
-      datasheetPdfUrl: "",
-      technicalDetails: {
-        dimensions: "",
-        weight: "",
-        powerRequirements: "",
-        operatingConditions: "",
-        warranty: "",
-        compliance: []
-      }
-    });
+    dispatchNewProduct({ field: 'name', value: "" });
+    dispatchNewProduct({ field: 'category', value: "Calibration Systems" });
+    dispatchNewProduct({ field: 'shortDescription', value: "" });
+    dispatchNewProduct({ field: 'fullTechnicalInfo', value: "" });
+    dispatchNewProduct({ field: 'specifications', value: [{ key: "", value: "" }] });
+    dispatchNewProduct({ field: 'featuresBenefits', value: [""] });
+    dispatchNewProduct({ field: 'applications', value: [""] });
+    dispatchNewProduct({ field: 'certifications', value: [""] });
+    dispatchNewProduct({ field: 'imageUrl', value: "" });
+    dispatchNewProduct({ field: 'imageGallery', value: [] });
+    dispatchNewProduct({ field: 'catalogPdfUrl', value: "" });
+    dispatchNewProduct({ field: 'datasheetPdfUrl', value: "" });
+    dispatchNewProduct({ field: 'technicalDetails', value: {
+      dimensions: "",
+      weight: "",
+      powerRequirements: "",
+      operatingConditions: "",
+      warranty: "",
+      compliance: []
+    } });
+    setSelectedFiles([]);
   };
 
   const handleLogout = () => {
@@ -328,9 +466,9 @@ export default function AdminDashboard() {
   };
 
   // Filter products based on search and category
-  const filteredProducts = products.filter(product => {
+  const filteredProducts = safeProducts.filter((product: Product) => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                         product.shortDescription.toLowerCase().includes(searchTerm.toLowerCase());
+      product.shortDescription.toLowerCase().includes(searchTerm.toLowerCase());
     const matchesCategory = selectedCategory === "all" || product.category === selectedCategory;
     return matchesSearch && matchesCategory;
   });
@@ -342,10 +480,7 @@ export default function AdminDashboard() {
         specifications: [...editingProduct.specifications, { key: "", value: "" }]
       });
     } else {
-      setNewProduct({
-        ...newProduct,
-        specifications: [...newProduct.specifications, { key: "", value: "" }]
-      });
+      dispatchNewProduct({ field: 'specifications', value: [...newProduct.specifications, { key: "", value: "" }] });
     }
   };
 
@@ -355,7 +490,7 @@ export default function AdminDashboard() {
       setEditingProduct({ ...editingProduct, specifications: specs });
     } else {
       const specs = newProduct.specifications.filter((_, i) => i !== index);
-      setNewProduct({ ...newProduct, specifications: specs });
+      dispatchNewProduct({ field: 'specifications', value: specs });
     }
   };
 
@@ -366,10 +501,7 @@ export default function AdminDashboard() {
         featuresBenefits: [...editingProduct.featuresBenefits, ""]
       });
     } else {
-      setNewProduct({
-        ...newProduct,
-        featuresBenefits: [...newProduct.featuresBenefits, ""]
-      });
+      dispatchNewProduct({ field: 'featuresBenefits', value: [...newProduct.featuresBenefits, ""] });
     }
   };
 
@@ -379,7 +511,7 @@ export default function AdminDashboard() {
       setEditingProduct({ ...editingProduct, featuresBenefits: features });
     } else {
       const features = newProduct.featuresBenefits.filter((_, i) => i !== index);
-      setNewProduct({ ...newProduct, featuresBenefits: features });
+      dispatchNewProduct({ field: 'featuresBenefits', value: features });
     }
   };
 
@@ -390,10 +522,7 @@ export default function AdminDashboard() {
         applications: [...editingProduct.applications, ""]
       });
     } else {
-      setNewProduct({
-        ...newProduct,
-        applications: [...newProduct.applications, ""]
-      });
+      dispatchNewProduct({ field: 'applications', value: [...newProduct.applications, ""] });
     }
   };
 
@@ -403,7 +532,7 @@ export default function AdminDashboard() {
       setEditingProduct({ ...editingProduct, applications: apps });
     } else {
       const apps = newProduct.applications.filter((_, i) => i !== index);
-      setNewProduct({ ...newProduct, applications: apps });
+      dispatchNewProduct({ field: 'applications', value: apps });
     }
   };
 
@@ -414,10 +543,7 @@ export default function AdminDashboard() {
         certifications: [...editingProduct.certifications, ""]
       });
     } else {
-      setNewProduct({
-        ...newProduct,
-        certifications: [...newProduct.certifications, ""]
-      });
+      dispatchNewProduct({ field: 'certifications', value: [...newProduct.certifications, ""] });
     }
   };
 
@@ -427,55 +553,96 @@ export default function AdminDashboard() {
       setEditingProduct({ ...editingProduct, certifications: certs });
     } else {
       const certs = newProduct.certifications.filter((_, i) => i !== index);
-      setNewProduct({ ...newProduct, certifications: certs });
+      dispatchNewProduct({ field: 'certifications', value: certs });
     }
   };
 
   const handleAddProduct = () => {
-    const productData = {
-      ...newProduct,
-      specifications: newProduct.specifications.filter(s => s.key && s.value),
-      featuresBenefits: newProduct.featuresBenefits.filter(f => f.trim()),
-      applications: newProduct.applications.filter(a => a.trim()),
-      certifications: newProduct.certifications.filter(c => c.trim()),
-      catalogPdfUrl: newProduct.catalogPdfUrl || "",
-      datasheetPdfUrl: newProduct.datasheetPdfUrl || "",
-      technicalDetails: newProduct.technicalDetails || {
+    const formData = new FormData();
+    
+    // Add all product data as form fields
+    formData.append('name', newProduct.name);
+    formData.append('category', newProduct.category);
+    formData.append('shortDescription', newProduct.shortDescription);
+    formData.append('fullTechnicalInfo', newProduct.fullTechnicalInfo);
+    formData.append('catalogPdfUrl', newProduct.catalogPdfUrl || "");
+    formData.append('datasheetPdfUrl', newProduct.datasheetPdfUrl || "");
+    
+    // Add arrays as JSON strings
+    formData.append('specifications', JSON.stringify(newProduct.specifications.filter(s => s.key && s.value)));
+    formData.append('featuresBenefits', JSON.stringify(newProduct.featuresBenefits.filter(f => f.trim())));
+    formData.append('applications', JSON.stringify(newProduct.applications.filter(a => a.trim())));
+    formData.append('certifications', JSON.stringify(newProduct.certifications.filter(c => c.trim())));
+    formData.append('technicalDetails', JSON.stringify(newProduct.technicalDetails || {
+      dimensions: "",
+      weight: "",
+      powerRequirements: "",
+      operatingConditions: "",
+      warranty: "",
+      compliance: []
+    }));
+    
+    // Add existing image URLs if any
+    if (newProduct.imageUrl) {
+      formData.append('imageUrl', newProduct.imageUrl);
+    }
+    if (newProduct.imageGallery.length > 0) {
+      formData.append('imageGallery', JSON.stringify(newProduct.imageGallery));
+    }
+    
+    // Add selected files
+    selectedFiles.forEach((file, index) => {
+      formData.append('images', file);
+    });
+    
+    createProduct.mutate(formData);
+  };
+
+  const handleEditProduct = (product: any) => {
+    setEditingProduct({ ...product });
+    setEditingSelectedFiles([]);
+  };
+
+  const handleUpdateProduct = () => {
+    if (editingProduct) {
+      const formData = new FormData();
+      
+      // Add all product data as form fields
+      formData.append('name', editingProduct.name);
+      formData.append('category', editingProduct.category);
+      formData.append('shortDescription', editingProduct.shortDescription);
+      formData.append('fullTechnicalInfo', editingProduct.fullTechnicalInfo);
+      formData.append('catalogPdfUrl', editingProduct.catalogPdfUrl || "");
+      formData.append('datasheetPdfUrl', editingProduct.datasheetPdfUrl || "");
+      
+      // Add arrays as JSON strings
+      formData.append('specifications', JSON.stringify(editingProduct.specifications.filter((s: any) => s.key && s.value)));
+      formData.append('featuresBenefits', JSON.stringify(editingProduct.featuresBenefits.filter((f: string) => f.trim())));
+      formData.append('applications', JSON.stringify(editingProduct.applications.filter((a: string) => a.trim())));
+      formData.append('certifications', JSON.stringify(editingProduct.certifications.filter((c: string) => c.trim())));
+      formData.append('technicalDetails', JSON.stringify(editingProduct.technicalDetails || {
         dimensions: "",
         weight: "",
         powerRequirements: "",
         operatingConditions: "",
         warranty: "",
         compliance: []
+      }));
+      
+      // Add existing image URLs if any
+      if (editingProduct.imageUrl) {
+        formData.append('imageUrl', editingProduct.imageUrl);
       }
-    };
-    createProduct.mutate(productData);
-  };
-
-  const handleEditProduct = (product: any) => {
-    setEditingProduct({ ...product });
-  };
-
-  const handleUpdateProduct = () => {
-    if (editingProduct) {
-      const productData = {
-        ...editingProduct,
-        specifications: editingProduct.specifications.filter((s: any) => s.key && s.value),
-        featuresBenefits: editingProduct.featuresBenefits.filter((f: string) => f.trim()),
-        applications: editingProduct.applications.filter((a: string) => a.trim()),
-        certifications: editingProduct.certifications.filter((c: string) => c.trim()),
-        catalogPdfUrl: editingProduct.catalogPdfUrl || "",
-        datasheetPdfUrl: editingProduct.datasheetPdfUrl || "",
-        technicalDetails: editingProduct.technicalDetails || {
-          dimensions: "",
-          weight: "",
-          powerRequirements: "",
-          operatingConditions: "",
-          warranty: "",
-          compliance: []
-        }
-      };
-      updateProduct.mutate({ id: editingProduct.id, data: productData });
+      if (editingProduct.imageGallery.length > 0) {
+        formData.append('imageGallery', JSON.stringify(editingProduct.imageGallery));
+      }
+      
+      // Add selected files
+      editingSelectedFiles.forEach((file, index) => {
+        formData.append('images', file);
+      });
+      
+      updateProduct.mutate({ id: editingProduct.id, formData });
     }
   };
 
@@ -698,6 +865,75 @@ export default function AdminDashboard() {
     }
   };
 
+  // Single handler for all product field changes
+  function handleProductFieldChange(field, value, isEditing = false) {
+    if (isEditing) {
+      setEditingProduct(prev => ({ ...prev, [field]: value }));
+    } else {
+      dispatchNewProduct({ field: field, value: value });
+    }
+  }
+
+  // Add this handler in AdminDashboard
+  async function handleAddProductV2(data: any) {
+    const formData = new FormData();
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === "images") {
+        value.forEach((file: File) => formData.append("images", file));
+      } else if (key === "homeFeatured") {
+        formData.append("homeFeatured", value ? "true" : "false");
+      } else if (
+        key === "specifications" ||
+        key === "featuresBenefits" ||
+        key === "applications" ||
+        key === "certifications" ||
+        key === "technicalDetails"
+      ) {
+        formData.append(key, JSON.stringify(value));
+      } else if (value !== undefined && value !== null) {
+        formData.append(key, value);
+      }
+    });
+    await apiRequestWithFiles("POST", "/api/products", formData);
+    setShowAddProductDialog(false);
+    queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+  }
+
+  async function handleUpdateProductV2(data: any) {
+    if (!editingProduct) return;
+    const formData = new FormData();
+    // Ensure imageUrl is always present
+    if (!data.images || data.images.length === 0) {
+      formData.append('imageUrl', editingProduct.imageUrl || '');
+    }
+    Object.entries(data).forEach(([key, value]) => {
+      if (key === "images") {
+        value.forEach((file: File) => formData.append("images", file));
+      } else if (key === "homeFeatured") {
+        formData.append("homeFeatured", value ? "true" : "false");
+      } else if (
+        key === "specifications" ||
+        key === "featuresBenefits" ||
+        key === "applications" ||
+        key === "certifications" ||
+        key === "technicalDetails"
+      ) {
+        formData.append(key, JSON.stringify(value));
+      } else if (value !== undefined && value !== null) {
+        formData.append(key, value);
+      }
+    });
+    // Ensure required fields are present
+    ["name", "category", "subcategory", "shortDescription", "fullTechnicalInfo", "imageUrl"].forEach(field => {
+      if (!formData.has(field)) {
+        formData.append(field, editingProduct[field] || "");
+      }
+    });
+    await apiRequestWithFiles("PUT", `/api/products/${editingProduct.id}`, formData);
+    setEditingProduct(null);
+    queryClient.invalidateQueries({ queryKey: ["/api/products"] });
+  }
+
   if (!user) {
     return (
       <div className="min-h-screen flex items-center justify-center">
@@ -712,20 +948,14 @@ export default function AdminDashboard() {
   const newQuotes = quotes.filter(q => q.status === "New").length;
   const newMessages = messages.filter(m => !m.replied).length;
 
-  const ProductForm = ({ product, isEditing = false }: { product: any; isEditing?: boolean }) => (
+  const ProductForm = React.memo(({ product, isEditing = false }: { product: any; isEditing?: boolean }) => (
     <div className="space-y-6 max-h-96 overflow-y-auto">
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         <div>
           <label className="block text-sm font-medium mb-1">Product Name</label>
           <Input
             value={product.name}
-            onChange={(e) => {
-              if (isEditing) {
-                setEditingProduct({ ...product, name: e.target.value });
-              } else {
-                setNewProduct({ ...product, name: e.target.value });
-              }
-            }}
+            onChange={e => !isEditing ? dispatchNewProduct({ field: 'name', value: e.target.value }) : setEditingProduct(prev => ({ ...prev, name: e.target.value }))}
             placeholder="Enter product name"
           />
         </div>
@@ -733,13 +963,7 @@ export default function AdminDashboard() {
           <label className="block text-sm font-medium mb-1">Category</label>
           <Select 
             value={product.category} 
-            onValueChange={(value: any) => {
-              if (isEditing) {
-                setEditingProduct({ ...product, category: value });
-              } else {
-                setNewProduct({ ...product, category: value });
-              }
-            }}
+            onValueChange={value => !isEditing ? dispatchNewProduct({ field: 'category', value }) : setEditingProduct(prev => ({ ...prev, category: value, subcategory: "" }))}
           >
             <SelectTrigger>
               <SelectValue />
@@ -751,19 +975,30 @@ export default function AdminDashboard() {
             </SelectContent>
           </Select>
         </div>
+        <div>
+          <label className="block text-sm font-medium mb-1">Subcategory</label>
+          <Select
+            value={product.subcategory || ""}
+            onValueChange={value => !isEditing ? dispatchNewProduct({ field: 'subcategory', value }) : setEditingProduct(prev => ({ ...prev, subcategory: value }))}
+            disabled={!product.category}
+          >
+            <SelectTrigger>
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              {(subcategories[product.category] || []).map((subcat) => (
+                <SelectItem key={subcat} value={subcat}>{subcat}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
       </div>
 
       <div>
         <label className="block text-sm font-medium mb-1">Description</label>
         <Textarea
           value={product.shortDescription}
-          onChange={(e) => {
-            if (isEditing) {
-              setEditingProduct({ ...product, shortDescription: e.target.value });
-            } else {
-              setNewProduct({ ...product, shortDescription: e.target.value });
-            }
-          }}
+          onChange={e => !isEditing ? dispatchNewProduct({ field: 'shortDescription', value: e.target.value }) : setEditingProduct(prev => ({ ...prev, shortDescription: e.target.value }))}
           placeholder="Brief product description"
           rows={3}
         />
@@ -773,13 +1008,7 @@ export default function AdminDashboard() {
         <label className="block text-sm font-medium mb-1">Full Technical Information</label>
         <Textarea
           value={product.fullTechnicalInfo}
-          onChange={(e) => {
-            if (isEditing) {
-              setEditingProduct({ ...product, fullTechnicalInfo: e.target.value });
-            } else {
-              setNewProduct({ ...product, fullTechnicalInfo: e.target.value });
-            }
-          }}
+          onChange={e => !isEditing ? dispatchNewProduct({ field: 'fullTechnicalInfo', value: e.target.value }) : setEditingProduct(prev => ({ ...prev, fullTechnicalInfo: e.target.value }))}
           placeholder="Detailed technical information"
           rows={4}
         />
@@ -798,7 +1027,7 @@ export default function AdminDashboard() {
                 if (isEditing) {
                   setEditingProduct({ ...product, specifications: specs });
                 } else {
-                  setNewProduct({ ...product, specifications: specs });
+                  dispatchNewProduct({ field: 'specifications', value: specs });
                 }
               }}
             />
@@ -811,7 +1040,7 @@ export default function AdminDashboard() {
                 if (isEditing) {
                   setEditingProduct({ ...product, specifications: specs });
                 } else {
-                  setNewProduct({ ...product, specifications: specs });
+                  dispatchNewProduct({ field: 'specifications', value: specs });
                 }
               }}
             />
@@ -848,7 +1077,7 @@ export default function AdminDashboard() {
                 if (isEditing) {
                   setEditingProduct({ ...product, featuresBenefits: features });
                 } else {
-                  setNewProduct({ ...product, featuresBenefits: features });
+                  dispatchNewProduct({ field: 'featuresBenefits', value: features });
                 }
               }}
             />
@@ -885,7 +1114,7 @@ export default function AdminDashboard() {
                 if (isEditing) {
                   setEditingProduct({ ...product, applications: apps });
                 } else {
-                  setNewProduct({ ...product, applications: apps });
+                  dispatchNewProduct({ field: 'applications', value: apps });
                 }
               }}
             />
@@ -922,7 +1151,7 @@ export default function AdminDashboard() {
                 if (isEditing) {
                   setEditingProduct({ ...product, certifications: certs });
                 } else {
-                  setNewProduct({ ...product, certifications: certs });
+                  dispatchNewProduct({ field: 'certifications', value: certs });
                 }
               }}
             />
@@ -962,7 +1191,7 @@ export default function AdminDashboard() {
                   if (isEditing) {
                     setEditingProduct({ ...product, imageUrl: fakeUrl });
                   } else {
-                    setNewProduct({ ...product, imageUrl: fakeUrl });
+                    dispatchNewProduct({ field: 'imageUrl', value: fakeUrl });
                   }
                   toast({
                     title: "Image Selected",
@@ -981,7 +1210,7 @@ export default function AdminDashboard() {
                 if (isEditing) {
                   setEditingProduct({ ...product, imageUrl: e.target.value });
                 } else {
-                  setNewProduct({ ...product, imageUrl: e.target.value });
+                  dispatchNewProduct({ field: 'imageUrl', value: e.target.value });
                 }
               }}
               placeholder="https://example.com/image.jpg"
@@ -1004,7 +1233,7 @@ export default function AdminDashboard() {
                   if (isEditing) {
                     setEditingProduct({ ...product, datasheetPdfUrl: fakeUrl });
                   } else {
-                    setNewProduct({ ...product, datasheetPdfUrl: fakeUrl });
+                    dispatchNewProduct({ field: 'datasheetPdfUrl', value: fakeUrl });
                   }
                   toast({
                     title: "Datasheet Selected",
@@ -1023,7 +1252,7 @@ export default function AdminDashboard() {
                 if (isEditing) {
                   setEditingProduct({ ...product, datasheetPdfUrl: e.target.value });
                 } else {
-                  setNewProduct({ ...product, datasheetPdfUrl: e.target.value });
+                  dispatchNewProduct({ field: 'datasheetPdfUrl', value: e.target.value });
                 }
               }}
               placeholder="https://example.com/datasheet.pdf"
@@ -1043,7 +1272,7 @@ export default function AdminDashboard() {
               if (isEditing) {
                 setEditingProduct({ ...product, technicalDetails: details });
               } else {
-                setNewProduct({ ...product, technicalDetails: details });
+                dispatchNewProduct({ field: 'technicalDetails', value: details });
               }
             }}
           />
@@ -1055,7 +1284,7 @@ export default function AdminDashboard() {
               if (isEditing) {
                 setEditingProduct({ ...product, technicalDetails: details });
               } else {
-                setNewProduct({ ...product, technicalDetails: details });
+                dispatchNewProduct({ field: 'technicalDetails', value: details });
               }
             }}
           />
@@ -1067,7 +1296,7 @@ export default function AdminDashboard() {
               if (isEditing) {
                 setEditingProduct({ ...product, technicalDetails: details });
               } else {
-                setNewProduct({ ...product, technicalDetails: details });
+                dispatchNewProduct({ field: 'technicalDetails', value: details });
               }
             }}
           />
@@ -1079,14 +1308,77 @@ export default function AdminDashboard() {
               if (isEditing) {
                 setEditingProduct({ ...product, technicalDetails: details });
               } else {
-                setNewProduct({ ...product, technicalDetails: details });
+                dispatchNewProduct({ field: 'technicalDetails', value: details });
               }
             }}
           />
         </div>
       </div>
+
+      <div>
+        <label className="block text-sm font-medium mb-2">Product Images (Multiple)</label>
+        <input
+          type="file"
+          accept="image/*"
+          multiple
+          onChange={e => {
+            const files = Array.from(e.target.files || []);
+            if (isEditing) {
+              setEditingSelectedFiles(files);
+              // Create preview URLs for display
+              const urls = files.map(file => URL.createObjectURL(file));
+              setEditingProduct({ ...product, imageGallery: [...(product.imageGallery || []), ...urls] });
+            } else {
+              setSelectedFiles(files);
+              // Create preview URLs for display
+              const urls = files.map(file => URL.createObjectURL(file));
+              dispatchNewProduct({ field: 'imageGallery', value: [...(product.imageGallery || []), ...urls] });
+            }
+          }}
+        />
+        <div className="flex gap-2 mt-2 flex-wrap">
+          {product.imageGallery && product.imageGallery.map((img: string, idx: number) => (
+            <div key={idx} className="relative">
+              <img src={img} alt="Preview" className="w-20 h-20 object-cover rounded border" />
+              <button
+                type="button"
+                className="absolute top-0 right-0 bg-red-500 text-white rounded-full p-1 text-xs"
+                onClick={() => {
+                  const newGallery = product.imageGallery.filter((_: any, i: number) => i !== idx);
+                  if (isEditing) {
+                    setEditingProduct({ ...product, imageGallery: newGallery });
+                    // Also remove from selected files if it's a new file
+                    if (idx >= (editingProduct?.imageGallery?.length || 0) - editingSelectedFiles.length) {
+                      const fileIndex = idx - (editingProduct?.imageGallery?.length || 0) + editingSelectedFiles.length;
+                      if (fileIndex >= 0) {
+                        const newFiles = editingSelectedFiles.filter((_, i) => i !== fileIndex);
+                        setEditingSelectedFiles(newFiles);
+                      }
+                    }
+                  } else {
+                    dispatchNewProduct({ field: 'imageGallery', value: newGallery });
+                    // Also remove from selected files if it's a new file
+                    if (idx >= (newProduct?.imageGallery?.length || 0) - selectedFiles.length) {
+                      const fileIndex = idx - (newProduct?.imageGallery?.length || 0) + selectedFiles.length;
+                      if (fileIndex >= 0) {
+                        const newFiles = selectedFiles.filter((_, i) => i !== fileIndex);
+                        setSelectedFiles(newFiles);
+                      }
+                    }
+                  }
+                }}
+              >
+                ×
+              </button>
+            </div>
+          ))}
+        </div>
+        <p className="text-sm text-gray-500 mt-1">
+          Selected files: {isEditing ? editingSelectedFiles.length : selectedFiles.length} new images
+        </p>
+      </div>
     </div>
-  );
+  ));
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -1108,1151 +1400,1115 @@ export default function AdminDashboard() {
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-        <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
-          <TabsList className="grid w-full grid-cols-8">
-            <TabsTrigger value="dashboard" className="flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Dashboard
-            </TabsTrigger>
-            <TabsTrigger value="products" className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              Products
-            </TabsTrigger>
-            <TabsTrigger value="events" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Events
-            </TabsTrigger>
-            <TabsTrigger value="customers" className="flex items-center gap-2">
-              <Users className="h-4 w-4" />
-              Customers
-            </TabsTrigger>
-            <TabsTrigger value="quotes" className="flex items-center gap-2 relative">
-              <FileText className="h-4 w-4" />
-              Quotes
-              {newQuotes > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2 px-1 py-0 text-xs">
-                  {newQuotes}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="messages" className="flex items-center gap-2 relative">
-              <MessageSquare className="h-4 w-4" />
-              Messages
-              {newMessages > 0 && (
-                <Badge variant="destructive" className="absolute -top-2 -right-2 px-1 py-0 text-xs">
-                  {newMessages}
-                </Badge>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="catalog" className="flex items-center gap-2">
-              <Download className="h-4 w-4" />
-              Catalog
-            </TabsTrigger>
-            <TabsTrigger value="analytics" className="flex items-center gap-2">
-              <Eye className="h-4 w-4" />
-              Analytics
-            </TabsTrigger>
-          </TabsList>
-
-          {/* Dashboard Tab */}
-          <TabsContent value="dashboard" className="space-y-6">
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <div className="p-3 rounded-full bg-blue-100 mr-4">
-                      <Package className="h-6 w-6 text-blue-500" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900">{products.length}</p>
-                      <p className="text-gray-600 text-sm">Total Products</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <div className="p-3 rounded-full bg-green-100 mr-4">
-                      <FileText className="h-6 w-6 text-green-500" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900">{quotes.length}</p>
-                      <p className="text-gray-600 text-sm">Quote Requests</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <div className="p-3 rounded-full bg-yellow-100 mr-4">
-                      <MessageSquare className="h-6 w-6 text-yellow-500" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900">{messages.length}</p>
-                      <p className="text-gray-600 text-sm">Messages</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-
-              <Card>
-                <CardContent className="p-6">
-                  <div className="flex items-center">
-                    <div className="p-3 rounded-full bg-maroon-100 mr-4">
-                      <Eye className="h-6 w-6 text-maroon-500" />
-                    </div>
-                    <div>
-                      <p className="text-2xl font-bold text-gray-900">{analytics?.totalViews || 0}</p>
-                      <p className="text-gray-600 text-sm">Website Views</p>
-                    </div>
-                  </div>
-                </CardContent>
-              </Card>
-            </div>
-
-            {/* Recent Activity */}
-            <Card>
-              <CardHeader>
-                <CardTitle>Recent Activity</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-4">
-                  {quotes.slice(0, 5).map((quote) => (
-                    <div key={quote.id} className="flex items-start border-b pb-4 last:border-b-0">
-                      <div className="w-2 h-2 bg-maroon-500 rounded-full mt-2 mr-3"></div>
-                      <div className="flex-1">
-                        <p className="text-gray-900">
-                          New quote request from {quote.customerName}
-                        </p>
-                        <p className="text-gray-500 text-sm">
-                          {new Date(quote.createdAt).toLocaleDateString()}
-                        </p>
+        <div className="flex min-h-screen">
+          {/* Sidebar */}
+          <aside className="w-56 bg-green-100 p-4 flex flex-col gap-2 border-r border-green-200">
+            <button onClick={() => setActiveTab('dashboard')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'dashboard' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><BarChart3 className="inline" /> Dashboard</button>
+            <button onClick={() => setActiveTab('products')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'products' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Package className="inline" /> Products</button>
+            <button onClick={() => window.location.href='/admin/category-management'} className={`flex items-center gap-2 px-4 py-2 rounded transition-all hover:bg-green-200 text-green-900`}><FolderOpen className="inline" /> Category Management</button>
+            <button onClick={() => setActiveTab('events')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'events' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Users className="inline" /> Events</button>
+            <button onClick={() => setActiveTab('customers')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'customers' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Users className="inline" /> Customers</button>
+            <button onClick={() => setActiveTab('quotes')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'quotes' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><FileText className="inline" /> Quotes</button>
+            <button onClick={() => setActiveTab('messages')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'messages' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><MessageSquare className="inline" /> Messages</button>
+            <button onClick={() => setActiveTab('catalog')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'catalog' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Download className="inline" /> Catalog</button>
+            <button onClick={() => setActiveTab('analytics')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'analytics' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Eye className="inline" /> Analytics</button>
+            <button onClick={() => setActiveTab('jobs')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'jobs' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Plus className="inline" /> Jobs</button>
+            <button onClick={() => window.location.href='/admin/chatbot-summaries'} className={`flex items-center gap-2 px-4 py-2 rounded transition-all hover:bg-green-200 text-green-900`}><MessageSquare className="inline" /> Chatbot Summaries</button>
+          </aside>
+          {/* Main Content */}
+          <main className="flex-1 p-8">
+            <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-6">
+              {/* Dashboard Tab */}
+              <TabsContent value="dashboard" className="space-y-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <div className="p-3 rounded-full bg-blue-100 mr-4">
+                          <Package className="h-6 w-6 text-blue-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-gray-900">{products.length}</p>
+                          <p className="text-gray-600 text-sm">Total Products</p>
+                        </div>
                       </div>
-                    </div>
-                  ))}
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <div className="p-3 rounded-full bg-green-100 mr-4">
+                          <FileText className="h-6 w-6 text-green-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-gray-900">{quotes.length}</p>
+                          <p className="text-gray-600 text-sm">Quote Requests</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <div className="p-3 rounded-full bg-yellow-100 mr-4">
+                          <MessageSquare className="h-6 w-6 text-yellow-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-gray-900">{messages.length}</p>
+                          <p className="text-gray-600 text-sm">Messages</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardContent className="p-6">
+                      <div className="flex items-center">
+                        <div className="p-3 rounded-full bg-maroon-100 mr-4">
+                          <Eye className="h-6 w-6 text-maroon-500" />
+                        </div>
+                        <div>
+                          <p className="text-2xl font-bold text-gray-900">{analytics?.totalViews || 0}</p>
+                          <p className="text-gray-600 text-sm">Website Views</p>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
                 </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
 
-          {/* Products Tab */}
-          <TabsContent value="products" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Product Management</h2>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={() => setShowAddProductDialog(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Product
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="flex flex-col sm:flex-row gap-4 mb-6">
-                  <div className="relative flex-1">
-                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-                    <Input 
-                      placeholder="Search products..." 
-                      className="pl-10"
-                      value={searchTerm}
-                      onChange={(e) => setSearchTerm(e.target.value)}
-                    />
-                  </div>
-                  <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                    <SelectTrigger className="w-48">
-                      <SelectValue placeholder="All Categories" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="all">All Categories</SelectItem>
-                      <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
-                      <SelectItem value="Testing Systems">Testing Systems</SelectItem>
-                      <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Product
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Category
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Views
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {filteredProducts.map((product) => (
-                        <tr key={product.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <img
-                                className="h-10 w-10 rounded-lg object-cover"
-                                src={product.imageUrl}
-                                alt={product.name}
-                              />
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{product.name}</div>
-                                <div className="text-sm text-gray-500 truncate max-w-xs">
-                                  {product.shortDescription}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant="outline">{product.category}</Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {product.views}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleEditProduct(product)}
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-red-600 hover:text-red-900"
-                                onClick={() => handleDeleteProduct(product.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
+                {/* Recent Activity */}
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Recent Activity</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      {quotes.slice(0, 5).map((quote) => (
+                        <div key={quote.id} className="flex items-start border-b pb-4 last:border-b-0">
+                          <div className="w-2 h-2 bg-maroon-500 rounded-full mt-2 mr-3"></div>
+                          <div className="flex-1">
+                            <p className="text-gray-900">
+                              New quote request from {quote.customerName}
+                            </p>
+                            <p className="text-gray-500 text-sm">
+                              {new Date(quote.createdAt).toLocaleDateString()}
+                            </p>
+                          </div>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Products Tab */}
+              <TabsContent value="products" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-gray-900">Product Management</h2>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setShowAddProductDialog(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Product
+                  </Button>
                 </div>
 
-                {filteredProducts.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No products found matching your criteria.
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Add Product Dialog */}
-            {showAddProductDialog && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Add Product</h3>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowAddProductDialog(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <ProductForm product={newProduct} />
-                  <div className="flex justify-end space-x-2 mt-6">
-                    <Button variant="outline" onClick={() => setShowAddProductDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleAddProduct}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      disabled={!newProduct.name || !newProduct.shortDescription || !newProduct.imageUrl}
-                    >
-                      Add Product
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Edit Product Dialog */}
-            {editingProduct && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Edit Product</h3>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setEditingProduct(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <ProductForm product={editingProduct} isEditing={true} />
-                  <div className="flex justify-end space-x-2 mt-6">
-                    <Button variant="outline" onClick={() => setEditingProduct(null)}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleUpdateProduct}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Update Product
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Events Tab */}
-          <TabsContent value="events" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Company Events Management</h2>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={() => setShowAddEventDialog(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Event
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Event
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {events.map((event) => (
-                        <tr key={event.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <img
-                                className="h-10 w-10 rounded-lg object-cover"
-                                src={event.imageUrl}
-                                alt={event.title}
-                              />
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{event.title}</div>
-                                <div className="text-sm text-gray-500 truncate max-w-xs">
-                                  {event.description}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(event.eventDate).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={event.published ? "default" : "secondary"}>
-                              {event.published ? "Published" : "Draft"}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleEditEvent(event)}
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-red-600 hover:text-red-900"
-                                onClick={() => handleDeleteEvent(event.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {events.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No events found. Create your first event!
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Add Event Dialog */}
-            {showAddEventDialog && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Add Event</h3>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowAddEventDialog(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Event Title</label>
-                      <Input
-                        value={newEvent.title}
-                        onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
-                        placeholder="Enter event title"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Description</label>
-                      <Textarea
-                        value={newEvent.description}
-                        onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
-                        placeholder="Event description"
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Image URL</label>
-                      <Input
-                        value={newEvent.imageUrl}
-                        onChange={(e) => setNewEvent({ ...newEvent, imageUrl: e.target.value })}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Event Date</label>
-                      <Input
-                        type="date"
-                        value={newEvent.eventDate}
-                        onChange={(e) => setNewEvent({ ...newEvent, eventDate: e.target.value })}
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="published"
-                        checked={newEvent.published}
-                        onChange={(e) => setNewEvent({ ...newEvent, published: e.target.checked })}
-                      />
-                      <label htmlFor="published" className="text-sm">Published</label>
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2 mt-6">
-                    <Button variant="outline" onClick={() => setShowAddEventDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleAddEvent}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      disabled={!newEvent.title || !newEvent.description || !newEvent.imageUrl || !newEvent.eventDate}
-                    >
-                      Add Event
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {/* Edit Event Dialog */}
-            {editingEvent && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Edit Event</h3>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setEditingEvent(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Event Title</label>
-                      <Input
-                        value={editingEvent.title}
-                        onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
-                        placeholder="Enter event title"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Description</label>
-                      <Textarea
-                        value={editingEvent.description}
-                        onChange={(e) => setEditingEvent({ ...editingEvent, description: e.target.value })}
-                        placeholder="Event description"
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Image URL</label>
-                      <Input
-                        value={editingEvent.imageUrl}
-                        onChange={(e) => setEditingEvent({ ...editingEvent, imageUrl: e.target.value })}
-                        placeholder="https://example.com/image.jpg"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Event Date</label>
-                      <Input
-                        type="date"
-                        value={editingEvent.eventDate}
-                        onChange={(e) => setEditingEvent({ ...editingEvent, eventDate: e.target.value })}
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="editPublished"
-                        checked={editingEvent.published}
-                        onChange={(e) => setEditingEvent({ ...editingEvent, published: e.target.checked })}
-                      />
-                      <label htmlFor="editPublished" className="text-sm">Published</label>
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2 mt-6">
-                    <Button variant="outline" onClick={() => setEditingEvent(null)}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleUpdateEvent}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Update Event
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
-
-          {/* Quotes Tab */}
-          <TabsContent value="quotes" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Quote Requests</h2>
-              <Button 
-                onClick={exportQuotes}
-                className="bg-green-500 text-white hover:bg-green-600"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export to Excel
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Customer
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Products
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {quotes.map((quote) => (
-                        <tr key={quote.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{quote.customerName}</div>
-                              <div className="text-sm text-gray-500">{quote.customerEmail}</div>
-                              <div className="text-sm text-gray-500">{quote.customerPhone}</div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900">{quote.products.length} products</div>
-                            <div className="text-sm text-gray-500">
-                              {quote.products.map(p => p.name).join(", ").substring(0, 50)}...
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(quote.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Select
-                              value={quote.status}
-                              onValueChange={(status) => updateQuoteStatus.mutate({ id: quote.id, status })}
-                            >
-                              <SelectTrigger className="w-32">
-                                <SelectValue />
-                              </SelectTrigger>
-                              <SelectContent>
-                                <SelectItem value="New">New</SelectItem>
-                                <SelectItem value="Contacted">Contacted</SelectItem>
-                                <SelectItem value="Closed">Closed</SelectItem>
-                              </SelectContent>
-                            </Select>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <Button variant="ghost" size="sm" className="text-maroon-600 hover:text-maroon-900">
-                              View Details
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Messages Tab */}
-          <TabsContent value="messages" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Contact Messages</h2>
-              <Button 
-                onClick={exportMessages}
-                className="bg-green-500 text-white hover:bg-green-600"
-              >
-                <Download className="mr-2 h-4 w-4" />
-                Export Messages
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Contact
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Message
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Date
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Status
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {messages.map((message) => (
-                        <tr key={message.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div>
-                              <div className="text-sm font-medium text-gray-900">{message.name}</div>
-                              <div className="text-sm text-gray-500">{message.email}</div>
-                              {message.phone && (
-                                <div className="text-sm text-gray-500">{message.phone}</div>
-                              )}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4">
-                            <div className="text-sm text-gray-900 max-w-xs truncate">
-                              {message.message}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {new Date(message.createdAt).toLocaleDateString()}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={message.replied ? "default" : "secondary"}>
-                              {message.replied ? "Replied" : "New"}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => markMessageReplied.mutate({ id: message.id, replied: !message.replied })}
-                              className="text-maroon-600 hover:text-maroon-900"
-                            >
-                              {message.replied ? "Mark Unread" : "Mark Replied"}
-                            </Button>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </CardContent>
-            </Card>
-          </TabsContent>
-
-          {/* Customers Tab */}
-          <TabsContent value="customers" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Customer Management</h2>
-              <Button 
-                className="bg-blue-600 hover:bg-blue-700 text-white"
-                onClick={() => setShowAddCustomerDialog(true)}
-              >
-                <Plus className="mr-2 h-4 w-4" />
-                Add Customer
-              </Button>
-            </div>
-
-            <Card>
-              <CardContent className="p-6">
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead className="bg-gray-50">
-                      <tr>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Customer
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Industry
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Featured
-                        </th>
-                        <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                          Actions
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="bg-white divide-y divide-gray-200">
-                      {customers.map((customer) => (
-                        <tr key={customer.id}>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <img
-                                className="h-10 w-10 rounded-lg object-cover"
-                                src={customer.logoUrl}
-                                alt={customer.name}
-                                onError={(e) => {
-                                  const target = e.target as HTMLImageElement;
-                                  target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23f3f4f6"/><text x="20" y="20" font-family="Arial" font-size="12" text-anchor="middle" dy=".3em" fill="%236b7280">${customer.name.charAt(0)}</text></svg>`;
-                                }}
-                              />
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">{customer.name}</div>
-                                <div className="text-sm text-gray-500">{customer.category}</div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant="outline">{customer.industry}</Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <Badge variant={customer.featured ? "default" : "secondary"}>
-                              {customer.featured ? "Yes" : "No"}
-                            </Badge>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                            <div className="flex space-x-2">
-                              <Button 
-                                variant="ghost" 
-                                size="sm"
-                                onClick={() => handleEditCustomer(customer)}
-                                className="text-blue-600 hover:text-blue-900"
-                              >
-                                <Edit className="h-4 w-4" />
-                              </Button>
-                              <Button 
-                                variant="ghost" 
-                                size="sm" 
-                                className="text-red-600 hover:text-red-900"
-                                onClick={() => handleDeleteCustomer(customer.id)}
-                              >
-                                <Trash2 className="h-4 w-4" />
-                              </Button>
-                            </div>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-
-                {customers.length === 0 && (
-                  <div className="text-center py-8 text-gray-500">
-                    No customers found. Create your first customer!
-                  </div>
-                )}
-              </CardContent>
-            </Card>
-
-            {/* Add Customer Dialog */}
-            {showAddCustomerDialog && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Add Customer</h3>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setShowAddCustomerDialog(false)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Customer Name</label>
-                        <Input
-                          value={newCustomer.name}
-                          onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
-                          placeholder="Enter customer name"
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="flex flex-col sm:flex-row gap-4 mb-6">
+                      <div className="relative flex-1">
+                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
+                        <Input 
+                          placeholder="Search products..." 
+                          className="pl-10"
+                          value={searchTerm}
+                          onChange={(e) => setSearchTerm(e.target.value)}
                         />
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Category</label>
-                        <Input
-                          value={newCustomer.category}
-                          onChange={(e) => setNewCustomer({ ...newCustomer, category: e.target.value })}
-                          placeholder="e.g., Technology, Manufacturing"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Logo URL</label>
-                      <Input
-                        value={newCustomer.logoUrl}
-                        onChange={(e) => setNewCustomer({ ...newCustomer, logoUrl: e.target.value })}
-                        placeholder="https://example.com/logo.png"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Industry</label>
-                      <Select 
-                        value={newCustomer.industry} 
-                        onValueChange={(value: any) => setNewCustomer({ ...newCustomer, industry: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
+                      <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+                        <SelectTrigger className="w-48">
+                          <SelectValue placeholder="All Categories" />
                         </SelectTrigger>
                         <SelectContent>
-                          <SelectItem value="Aerospace & Defense">Aerospace & Defense</SelectItem>
-                          <SelectItem value="Automotive Manufacturing">Automotive Manufacturing</SelectItem>
-                          <SelectItem value="Pharmaceutical & Biotech">Pharmaceutical & Biotech</SelectItem>
-                          <SelectItem value="Oil & Gas">Oil & Gas</SelectItem>
-                          <SelectItem value="Electronics & Semiconductors">Electronics & Semiconductors</SelectItem>
-                          <SelectItem value="Research Institutions">Research Institutions</SelectItem>
+                          <SelectItem value="all">All Categories</SelectItem>
+                          <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
+                          <SelectItem value="Testing Systems">Testing Systems</SelectItem>
+                          <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Description (Optional)</label>
-                      <Textarea
-                        value={newCustomer.description}
-                        onChange={(e) => setNewCustomer({ ...newCustomer, description: e.target.value })}
-                        placeholder="Brief description about the customer"
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Website (Optional)</label>
-                      <Input
-                        value={newCustomer.website}
-                        onChange={(e) => setNewCustomer({ ...newCustomer, website: e.target.value })}
-                        placeholder="https://customer-website.com"
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="featured"
-                        checked={newCustomer.featured}
-                        onChange={(e) => setNewCustomer({ ...newCustomer, featured: e.target.checked })}
-                      />
-                      <label htmlFor="featured" className="text-sm">Featured on homepage</label>
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2 mt-6">
-                    <Button variant="outline" onClick={() => setShowAddCustomerDialog(false)}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleAddCustomer}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                      disabled={!newCustomer.name || !newCustomer.logoUrl || !newCustomer.industry}
-                    >
-                      Add Customer
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
 
-            {/* Edit Customer Dialog */}
-            {editingCustomer && (
-              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
-                  <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-lg font-semibold">Edit Customer</h3>
-                    <Button
-                      variant="ghost"
-                      onClick={() => setEditingCustomer(null)}
-                    >
-                      <X className="h-4 w-4" />
-                    </Button>
-                  </div>
-                  <div className="space-y-4">
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Customer Name</label>
-                        <Input
-                          value={editingCustomer.name}
-                          onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
-                          placeholder="Enter customer name"
-                        />
+                    <div className="overflow-x-auto" style={{ maxHeight: '500px', overflowY: 'auto' }}>
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Product
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Category
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Views
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {filteredProducts.slice(0, 10).map((product) => (
+                            <tr key={product.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <img
+                                    className="h-10 w-10 rounded-lg object-cover"
+                                    src={product.imageUrl}
+                                    alt={product.name}
+                                  />
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{product.name}</div>
+                                    <div className="text-sm text-gray-500 truncate max-w-xs">
+                                      {product.shortDescription}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge variant="outline">{product.category}</Badge>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {product.views}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleEditProduct(product)}
+                                    className="text-blue-600 hover:text-blue-900"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-red-600 hover:text-red-900"
+                                    onClick={() => handleDeleteProduct(product.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                      {filteredProducts.length > 10 && (
+                        <div className="text-center text-xs text-gray-500 mt-2">Showing first 10 products. Use search or filters to narrow down.</div>
+                      )}
+                    </div>
+
+                    {filteredProducts.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No products found matching your criteria.
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium mb-1">Category</label>
-                        <Input
-                          value={editingCustomer.category}
-                          onChange={(e) => setEditingCustomer({ ...editingCustomer, category: e.target.value })}
-                          placeholder="e.g., Technology, Manufacturing"
-                        />
-                      </div>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Logo URL</label>
-                      <Input
-                        value={editingCustomer.logoUrl}
-                        onChange={(e) => setEditingCustomer({ ...editingCustomer, logoUrl: e.target.value })}
-                        placeholder="https://example.com/logo.png"
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Industry</label>
-                      <Select 
-                        value={editingCustomer.industry} 
-                        onValueChange={(value: any) => setEditingCustomer({ ...editingCustomer, industry: value })}
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Aerospace & Defense">Aerospace & Defense</SelectItem>
-                          <SelectItem value="Automotive Manufacturing">Automotive Manufacturing</SelectItem>
-                          <SelectItem value="Pharmaceutical & Biotech">Pharmaceutical & Biotech</SelectItem>
-                          <SelectItem value="Oil & Gas">Oil & Gas</SelectItem>
-                          <SelectItem value="Electronics & Semiconductors">Electronics & Semiconductors</SelectItem>
-                          <SelectItem value="Research Institutions">Research Institutions</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Description (Optional)</label>
-                      <Textarea
-                        value={editingCustomer.description || ""}
-                        onChange={(e) => setEditingCustomer({ ...editingCustomer, description: e.target.value })}
-                        placeholder="Brief description about the customer"
-                        rows={3}
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Website (Optional)</label>
-                      <Input
-                        value={editingCustomer.website || ""}
-                        onChange={(e) => setEditingCustomer({ ...editingCustomer, website: e.target.value })}
-                        placeholder="https://customer-website.com"
-                      />
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <input
-                        type="checkbox"
-                        id="editFeatured"
-                        checked={editingCustomer.featured}
-                        onChange={(e) => setEditingCustomer({ ...editingCustomer, featured: e.target.checked })}
-                      />
-                      <label htmlFor="editFeatured" className="text-sm">Featured on homepage</label>
-                    </div>
-                  </div>
-                  <div className="flex justify-end space-x-2 mt-6">
-                    <Button variant="outline" onClick={() => setEditingCustomer(null)}>
-                      Cancel
-                    </Button>
-                    <Button 
-                      onClick={handleUpdateCustomer}
-                      className="bg-blue-600 hover:bg-blue-700 text-white"
-                    >
-                      Update Customer
-                    </Button>
-                  </div>
-                </div>
-              </div>
-            )}
-          </TabsContent>
+                    )}
+                  </CardContent>
+                </Card>
 
-          {/* Catalog Tab */}
-          <TabsContent value="catalog" className="space-y-6">
-            <div className="flex justify-between items-center">
-              <h2 className="text-2xl font-bold text-gray-900">Catalog Management</h2>
-            </div>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Main Product Catalog</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1">Catalog Title</label>
-                  <Input 
-                    value={mainCatalog.title}
-                    onChange={(e) => setMainCatalog({ ...mainCatalog, title: e.target.value })}
-                    placeholder="Main Product Catalog 2024" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Description</label>
-                  <Input 
-                    value={mainCatalog.description}
-                    onChange={(e) => setMainCatalog({ ...mainCatalog, description: e.target.value })}
-                    placeholder="Complete product specifications and details" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">Upload Catalog PDF</label>
-                  <div className="flex gap-2">
-                    <Input 
-                      type="file"
-                      accept=".pdf"
-                      onChange={(e) => {
-                        const file = e.target.files?.[0];
-                        if (file) {
-                          // For demo purposes, using a placeholder URL
-                          // In production, you would upload to Replit Object Storage
-                          const fakeUrl = `https://storage.example.com/catalogs/${file.name}`;
-                          const fileSize = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-                          setMainCatalog({ 
-                            ...mainCatalog, 
-                            pdfUrl: fakeUrl,
-                            fileSize: fileSize
-                          });
-                          toast({
-                            title: "File Selected",
-                            description: `${file.name} ready for upload`,
-                          });
-                        }
-                      }}
-                      className="flex-1"
-                    />
-                  </div>
-                  <p className="text-sm text-gray-500 mt-1">
-                    Or enter URL manually below
-                  </p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">PDF URL</label>
-                  <Input 
-                    value={mainCatalog.pdfUrl}
-                    onChange={(e) => setMainCatalog({ ...mainCatalog, pdfUrl: e.target.value })}
-                    placeholder="https://example.com/catalog.pdf" 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1">File Size (optional)</label>
-                  <Input 
-                    value={mainCatalog.fileSize}
-                    onChange={(e) => setMainCatalog({ ...mainCatalog, fileSize: e.target.value })}
-                    placeholder="15.2 MB" 
-                  />
-                </div>
-                <Button 
-                  onClick={handleUpdateCatalog}
-                  className="bg-blue-600 hover:bg-blue-700 text-white"
-                  disabled={!mainCatalog.title || !mainCatalog.description || !mainCatalog.pdfUrl}
+                {/* Add Product Dialog */}
+                <div
+                  className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${showAddProductDialog ? '' : 'hidden'}`}
                 >
-                  Update Catalog
-                </Button>
-                
-                {catalog && (
-                  <div className="mt-6 p-4 bg-gray-50 rounded-lg">
-                    <h4 className="font-semibold mb-2">Current Catalog Info:</h4>
-                    <p><strong>Title:</strong> {catalog.title}</p>
-                    <p><strong>Description:</strong> {catalog.description}</p>
-                    <p><strong>Last Updated:</strong> {new Date(catalog.lastUpdated).toLocaleDateString()}</p>
-                    {catalog.fileSize && <p><strong>File Size:</strong> {catalog.fileSize}</p>}
-                    <Button 
-                      variant="outline" 
-                      className="mt-2"
-                      onClick={() => window.open(catalog.pdfUrl, '_blank')}
-                    >
-                      <Download className="h-4 w-4 mr-2" />
-                      View Current Catalog
-                    </Button>
+                  <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Add Product</h3>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowAddProductDialog(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <ProductFormV2 onSubmit={handleAddProductV2} loading={false} mode="add" />
                   </div>
-                )}
-              </CardContent>
-            </Card>
-          </TabsContent>
+                </div>
 
-          {/* Analytics Tab */}
-          <TabsContent value="analytics" className="space-y-6">
-            <h2 className="text-2xl font-bold text-gray-900">Analytics Overview</h2>
-
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardHeader>
-                  <CardTitle>Website Views</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="text-3xl font-bold text-maroon-500 mb-2">
-                    {analytics?.totalViews || 0}
+                {/* Edit Product Dialog */}
+                <div
+                  className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${editingProduct ? '' : 'hidden'}`}
+                >
+                  <div className="bg-white rounded-lg p-6 w-full max-w-4xl max-h-screen overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Edit Product</h3>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setEditingProduct(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {editingProduct && (
+                      <ProductFormV2
+                        initialData={editingProduct}
+                        mode="edit"
+                        loading={false}
+                        onSubmit={handleUpdateProductV2}
+                      />
+                    )}
                   </div>
-                  <p className="text-gray-600">Total website views</p>
-                </CardContent>
-              </Card>
+                </div>
+              </TabsContent>
 
-              <Card>
-                <CardHeader>
-                  <CardTitle>Top Viewed Products</CardTitle>
-                </CardHeader>
-                <CardContent>
-                  <div className="space-y-3">
-                    {productViews.slice(0, 5).map((product) => (
-                      <div key={product.productId} className="flex justify-between items-center">
-                        <span className="text-sm text-gray-700 truncate">{product.productName}</span>
-                        <Badge variant="outline">{product.views} views</Badge>
+              {/* Events Tab */}
+              <TabsContent value="events" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-gray-900">Company Events Management</h2>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setShowAddEventDialog(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Event
+                  </Button>
+                </div>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Event
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {events.map((event) => (
+                            <tr key={event.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <img
+                                    className="h-10 w-10 rounded-lg object-cover"
+                                    src={event.imageUrl}
+                                    alt={event.title}
+                                  />
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{event.title}</div>
+                                    <div className="text-sm text-gray-500 truncate max-w-xs">
+                                      {event.description}
+                                    </div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {new Date(event.eventDate).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge variant={event.published ? "default" : "secondary"}>
+                                  {event.published ? "Published" : "Draft"}
+                                </Badge>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleEditEvent(event)}
+                                    className="text-blue-600 hover:text-blue-900"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-red-600 hover:text-red-900"
+                                    onClick={() => handleDeleteEvent(event.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {events.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No events found. Create your first event!
                       </div>
-                    ))}
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Add Event Dialog */}
+                <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${showAddEventDialog ? '' : 'hidden'}`}>
+                  <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Add Event</h3>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowAddEventDialog(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Event Title</label>
+                        <Input
+                          value={newEvent.title}
+                          onChange={(e) => setNewEvent({ ...newEvent, title: e.target.value })}
+                          placeholder="Enter event title"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Description</label>
+                        <Textarea
+                          value={newEvent.description}
+                          onChange={(e) => setNewEvent({ ...newEvent, description: e.target.value })}
+                          placeholder="Event description"
+                          rows={3}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Image URL</label>
+                        <Input
+                          value={newEvent.imageUrl}
+                          onChange={(e) => setNewEvent({ ...newEvent, imageUrl: e.target.value })}
+                          placeholder="https://example.com/image.jpg"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Event Date</label>
+                        <Input
+                          type="date"
+                          value={newEvent.eventDate}
+                          onChange={(e) => setNewEvent({ ...newEvent, eventDate: e.target.value })}
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="published"
+                          checked={newEvent.published}
+                          onChange={(e) => setNewEvent({ ...newEvent, published: e.target.checked })}
+                        />
+                        <label htmlFor="published" className="text-sm">Published</label>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-6">
+                      <Button variant="outline" onClick={() => setShowAddEventDialog(false)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleAddEvent}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={!newEvent.title || !newEvent.description || !newEvent.imageUrl || !newEvent.eventDate}
+                      >
+                        Add Event
+                      </Button>
+                    </div>
                   </div>
-                </CardContent>
-              </Card>
-            </div>
-          </TabsContent>
-        </Tabs>
+                </div>
+
+                {/* Edit Event Dialog */}
+                <div
+                  className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${editingEvent ? '' : 'hidden'}`}
+                >
+                  <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Edit Event</h3>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setEditingEvent(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {editingEvent && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Event Title</label>
+                          <Input
+                            value={editingEvent.title}
+                            onChange={(e) => setEditingEvent({ ...editingEvent, title: e.target.value })}
+                            placeholder="Enter event title"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Description</label>
+                          <Textarea
+                            value={editingEvent.description}
+                            onChange={(e) => setEditingEvent({ ...editingEvent, description: e.target.value })}
+                            placeholder="Event description"
+                            rows={3}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Image URL</label>
+                          <Input
+                            value={editingEvent.imageUrl}
+                            onChange={(e) => setEditingEvent({ ...editingEvent, imageUrl: e.target.value })}
+                            placeholder="https://example.com/image.jpg"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Event Date</label>
+                          <Input
+                            type="date"
+                            value={editingEvent.eventDate}
+                            onChange={(e) => setEditingEvent({ ...editingEvent, eventDate: e.target.value })}
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="editPublished"
+                            checked={editingEvent.published}
+                            onChange={(e) => setEditingEvent({ ...editingEvent, published: e.target.checked })}
+                          />
+                          <label htmlFor="editPublished" className="text-sm">Published</label>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex justify-end space-x-2 mt-6">
+                      <Button variant="outline" onClick={() => setEditingEvent(null)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleUpdateEvent}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Update Event
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Quotes Tab */}
+              <TabsContent value="quotes" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-gray-900">Quote Requests</h2>
+                  <Button 
+                    onClick={exportQuotes}
+                    className="bg-green-500 text-white hover:bg-green-600"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Export to Excel
+                  </Button>
+                </div>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Customer
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Products
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {quotes.map((quote) => (
+                            <tr key={quote.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">{quote.customerName}</div>
+                                  <div className="text-sm text-gray-500">{quote.customerEmail}</div>
+                                  <div className="text-sm text-gray-500">{quote.customerPhone}</div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-sm text-gray-900">{quote.products.length} products</div>
+                                <div className="text-sm text-gray-500">
+                                  {quote.products.map(p => p.name).join(", ").substring(0, 50)}...
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {new Date(quote.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Select
+                                  value={quote.status}
+                                  onValueChange={(status) => updateQuoteStatus.mutate({ id: quote.id, status })}
+                                >
+                                  <SelectTrigger className="w-32">
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="New">New</SelectItem>
+                                    <SelectItem value="Contacted">Contacted</SelectItem>
+                                    <SelectItem value="Closed">Closed</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <Button variant="ghost" size="sm" className="text-maroon-600 hover:text-maroon-900">
+                                  View Details
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Messages Tab */}
+              <TabsContent value="messages" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-gray-900">Contact Messages</h2>
+                  <Button 
+                    onClick={exportMessages}
+                    className="bg-green-500 text-white hover:bg-green-600"
+                  >
+                    <Download className="mr-2 h-4 w-4" />
+                    Export Messages
+                  </Button>
+                </div>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Contact
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Message
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Date
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Status
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {messages.map((message) => (
+                            <tr key={message.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div>
+                                  <div className="text-sm font-medium text-gray-900">{message.name}</div>
+                                  <div className="text-sm text-gray-500">{message.email}</div>
+                                  {message.phone && (
+                                    <div className="text-sm text-gray-500">{message.phone}</div>
+                                  )}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4">
+                                <div className="text-sm text-gray-900 max-w-xs truncate">
+                                  {message.message}
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
+                                {new Date(message.createdAt).toLocaleDateString()}
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge variant={message.replied ? "default" : "secondary"}>
+                                  {message.replied ? "Replied" : "New"}
+                                </Badge>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => markMessageReplied.mutate({ id: message.id, replied: !message.replied })}
+                                  className="text-maroon-600 hover:text-maroon-900"
+                                >
+                                  {message.replied ? "Mark Unread" : "Mark Replied"}
+                                </Button>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Customers Tab */}
+              <TabsContent value="customers" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-gray-900">Customer Management</h2>
+                  <Button 
+                    className="bg-blue-600 hover:bg-blue-700 text-white"
+                    onClick={() => setShowAddCustomerDialog(true)}
+                  >
+                    <Plus className="mr-2 h-4 w-4" />
+                    Add Customer
+                  </Button>
+                </div>
+
+                <Card>
+                  <CardContent className="p-6">
+                    <div className="overflow-x-auto">
+                      <table className="w-full">
+                        <thead className="bg-gray-50">
+                          <tr>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Customer
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Industry
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Featured
+                            </th>
+                            <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                              Actions
+                            </th>
+                          </tr>
+                        </thead>
+                        <tbody className="bg-white divide-y divide-gray-200">
+                          {customers.map((customer) => (
+                            <tr key={customer.id}>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <div className="flex items-center">
+                                  <img
+                                    className="h-10 w-10 rounded-lg object-cover"
+                                    src={customer.logoUrl}
+                                    alt={customer.name}
+                                    onError={(e) => {
+                                      const target = e.target as HTMLImageElement;
+                                      target.src = `data:image/svg+xml,<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40"><rect width="40" height="40" fill="%23f3f4f6"/><text x="20" y="20" font-family="Arial" font-size="12" text-anchor="middle" dy=".3em" fill="%236b7280">${customer.name.charAt(0)}</text></svg>`;
+                                    }}
+                                  />
+                                  <div className="ml-4">
+                                    <div className="text-sm font-medium text-gray-900">{customer.name}</div>
+                                    <div className="text-sm text-gray-500">{customer.category}</div>
+                                  </div>
+                                </div>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge variant="outline">{customer.industry}</Badge>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap">
+                                <Badge variant={customer.featured ? "default" : "secondary"}>
+                                  {customer.featured ? "Yes" : "No"}
+                                </Badge>
+                              </td>
+                              <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                                <div className="flex space-x-2">
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm"
+                                    onClick={() => handleEditCustomer(customer)}
+                                    className="text-blue-600 hover:text-blue-900"
+                                  >
+                                    <Edit className="h-4 w-4" />
+                                  </Button>
+                                  <Button 
+                                    variant="ghost" 
+                                    size="sm" 
+                                    className="text-red-600 hover:text-red-900"
+                                    onClick={() => handleDeleteCustomer(customer.id)}
+                                  >
+                                    <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+
+                    {customers.length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        No customers found. Create your first customer!
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Add Customer Dialog */}
+                <div className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${showAddCustomerDialog ? '' : 'hidden'}`}>
+                  <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Add Customer</h3>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setShowAddCustomerDialog(false)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Customer Name</label>
+                          <Input
+                            value={newCustomer.name}
+                            onChange={(e) => setNewCustomer({ ...newCustomer, name: e.target.value })}
+                            placeholder="Enter customer name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Category</label>
+                          <Input
+                            value={newCustomer.category}
+                            onChange={(e) => setNewCustomer({ ...newCustomer, category: e.target.value })}
+                            placeholder="e.g., Technology, Manufacturing"
+                          />
+                        </div>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Logo URL</label>
+                        <Input
+                          value={newCustomer.logoUrl}
+                          onChange={(e) => setNewCustomer({ ...newCustomer, logoUrl: e.target.value })}
+                          placeholder="https://example.com/logo.png"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Industry</label>
+                        <Select 
+                          value={newCustomer.industry} 
+                          onValueChange={(value: any) => setNewCustomer({ ...newCustomer, industry: value })}
+                        >
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="Aerospace & Defense">Aerospace & Defense</SelectItem>
+                            <SelectItem value="Automotive Manufacturing">Automotive Manufacturing</SelectItem>
+                            <SelectItem value="Pharmaceutical & Biotech">Pharmaceutical & Biotech</SelectItem>
+                            <SelectItem value="Oil & Gas">Oil & Gas</SelectItem>
+                            <SelectItem value="Electronics & Semiconductors">Electronics & Semiconductors</SelectItem>
+                            <SelectItem value="Research Institutions">Research Institutions</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                        <Textarea
+                          value={newCustomer.description}
+                          onChange={(e) => setNewCustomer({ ...newCustomer, description: e.target.value })}
+                          placeholder="Brief description about the customer"
+                          rows={3}
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Website (Optional)</label>
+                        <Input
+                          value={newCustomer.website}
+                          onChange={(e) => setNewCustomer({ ...newCustomer, website: e.target.value })}
+                          placeholder="https://customer-website.com"
+                        />
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        <input
+                          type="checkbox"
+                          id="featured"
+                          checked={newCustomer.featured}
+                          onChange={(e) => setNewCustomer({ ...newCustomer, featured: e.target.checked })}
+                        />
+                        <label htmlFor="featured" className="text-sm">Featured on homepage</label>
+                      </div>
+                    </div>
+                    <div className="flex justify-end space-x-2 mt-6">
+                      <Button variant="outline" onClick={() => setShowAddCustomerDialog(false)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleAddCustomer}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                        disabled={!newCustomer.name || !newCustomer.logoUrl || !newCustomer.industry}
+                      >
+                        Add Customer
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Edit Customer Dialog */}
+                <div
+                  className={`fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 ${editingCustomer ? '' : 'hidden'}`}
+                >
+                  <div className="bg-white rounded-lg p-6 w-full max-w-2xl max-h-screen overflow-y-auto">
+                    <div className="flex justify-between items-center mb-4">
+                      <h3 className="text-lg font-semibold">Edit Customer</h3>
+                      <Button
+                        variant="ghost"
+                        onClick={() => setEditingCustomer(null)}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                    {editingCustomer && (
+                      <div className="space-y-4">
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Customer Name</label>
+                          <Input
+                            value={editingCustomer.name}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, name: e.target.value })}
+                            placeholder="Enter customer name"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Category</label>
+                          <Input
+                            value={editingCustomer.category}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, category: e.target.value })}
+                            placeholder="e.g., Technology, Manufacturing"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Logo URL</label>
+                          <Input
+                            value={editingCustomer.logoUrl}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, logoUrl: e.target.value })}
+                            placeholder="https://example.com/logo.png"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Industry</label>
+                          <Select 
+                            value={editingCustomer.industry} 
+                            onValueChange={(value: any) => setEditingCustomer({ ...editingCustomer, industry: value })}
+                          >
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="Aerospace & Defense">Aerospace & Defense</SelectItem>
+                              <SelectItem value="Automotive Manufacturing">Automotive Manufacturing</SelectItem>
+                              <SelectItem value="Pharmaceutical & Biotech">Pharmaceutical & Biotech</SelectItem>
+                              <SelectItem value="Oil & Gas">Oil & Gas</SelectItem>
+                              <SelectItem value="Electronics & Semiconductors">Electronics & Semiconductors</SelectItem>
+                              <SelectItem value="Research Institutions">Research Institutions</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Description (Optional)</label>
+                          <Textarea
+                            value={editingCustomer.description || ""}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, description: e.target.value })}
+                            placeholder="Brief description about the customer"
+                            rows={3}
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Website (Optional)</label>
+                          <Input
+                            value={editingCustomer.website || ""}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, website: e.target.value })}
+                            placeholder="https://customer-website.com"
+                          />
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id="editFeatured"
+                            checked={editingCustomer.featured}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, featured: e.target.checked })}
+                          />
+                          <label htmlFor="editFeatured" className="text-sm">Featured on homepage</label>
+                        </div>
+                      </div>
+                    )}
+                    <div className="flex justify-end space-x-2 mt-6">
+                      <Button variant="outline" onClick={() => setEditingCustomer(null)}>
+                        Cancel
+                      </Button>
+                      <Button 
+                        onClick={handleUpdateCustomer}
+                        className="bg-blue-600 hover:bg-blue-700 text-white"
+                      >
+                        Update Customer
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              </TabsContent>
+
+              {/* Catalog Tab */}
+              <TabsContent value="catalog" className="space-y-6">
+                <div className="flex justify-between items-center">
+                  <h2 className="text-2xl font-bold text-gray-900">Catalog Management</h2>
+                </div>
+
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Main Product Catalog</CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Catalog Title</label>
+                      <Input 
+                        value={mainCatalog.title}
+                        onChange={(e) => setMainCatalog({ ...mainCatalog, title: e.target.value })}
+                        placeholder="Main Product Catalog 2024" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Description</label>
+                      <Input 
+                        value={mainCatalog.description}
+                        onChange={(e) => setMainCatalog({ ...mainCatalog, description: e.target.value })}
+                        placeholder="Complete product specifications and details" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Upload Catalog PDF</label>
+                      <div className="flex gap-2">
+                        <Input 
+                          type="file"
+                          accept=".pdf"
+                          onChange={(e) => {
+                            const file = e.target.files?.[0];
+                            if (file) {
+                              // For demo purposes, using a placeholder URL
+                              // In production, you would upload to Replit Object Storage
+                              const fakeUrl = `https://storage.example.com/catalogs/${file.name}`;
+                              const fileSize = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
+                              setMainCatalog({ 
+                                ...mainCatalog, 
+                                pdfUrl: fakeUrl,
+                                fileSize: fileSize
+                              });
+                              toast({
+                                title: "File Selected",
+                                description: `${file.name} ready for upload`,
+                              });
+                            }
+                          }}
+                          className="flex-1"
+                        />
+                      </div>
+                      <p className="text-sm text-gray-500 mt-1">
+                        Or enter URL manually below
+                      </p>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">PDF URL</label>
+                      <Input 
+                        value={mainCatalog.pdfUrl}
+                        onChange={(e) => setMainCatalog({ ...mainCatalog, pdfUrl: e.target.value })}
+                        placeholder="https://example.com/catalog.pdf" 
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">File Size (optional)</label>
+                      <Input 
+                        value={mainCatalog.fileSize}
+                        onChange={(e) => setMainCatalog({ ...mainCatalog, fileSize: e.target.value })}
+                        placeholder="15.2 MB" 
+                      />
+                    </div>
+                    <Button 
+                      onClick={handleUpdateCatalog}
+                      className="bg-blue-600 hover:bg-blue-700 text-white"
+                      disabled={!mainCatalog.title || !mainCatalog.description || !mainCatalog.pdfUrl}
+                    >
+                      Update Catalog
+                    </Button>
+                    
+                    {catalog && (
+                      <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+                        <h4 className="font-semibold mb-2">Current Catalog Info:</h4>
+                        <p><strong>Title:</strong> {catalog.title}</p>
+                        <p><strong>Description:</strong> {catalog.description}</p>
+                        <p><strong>Last Updated:</strong> {new Date(catalog.lastUpdated).toLocaleDateString()}</p>
+                        {catalog.fileSize && <p><strong>File Size:</strong> {catalog.fileSize}</p>}
+                        <Button 
+                          variant="outline" 
+                          className="mt-2"
+                          onClick={() => window.open(catalog.pdfUrl, '_blank')}
+                        >
+                          <Download className="h-4 w-4 mr-2" />
+                          View Current Catalog
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              {/* Analytics Tab */}
+              <TabsContent value="analytics" className="space-y-6">
+                <h2 className="text-2xl font-bold text-gray-900">Analytics Overview</h2>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Website Views</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="text-3xl font-bold text-maroon-500 mb-2">
+                        {analytics?.totalViews || 0}
+                      </div>
+                      <p className="text-gray-600">Total website views</p>
+                    </CardContent>
+                  </Card>
+
+                  <Card>
+                    <CardHeader>
+                      <CardTitle>Top Viewed Products</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                      <div className="space-y-3">
+                        {productViews.slice(0, 5).map((product) => (
+                          <div key={product.productId} className="flex justify-between items-center">
+                            <span className="text-sm text-gray-700 truncate">{product.productName}</span>
+                            <Badge variant="outline">{product.views} views</Badge>
+                          </div>
+                        ))}
+                      </div>
+                    </CardContent>
+                  </Card>
+                </div>
+              </TabsContent>
+
+              {/* Jobs Tab */}
+              <TabsContent value="jobs">
+                <AdminJobs />
+              </TabsContent>
+            </Tabs>
+          </main>
+        </div>
       </div>
     </div>
   );

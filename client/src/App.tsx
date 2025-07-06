@@ -17,6 +17,11 @@ import Customers from "./pages/customers";
 import AdminLogin from "./pages/admin/login";
 import AdminDashboard from "./pages/admin/dashboard";
 import NotFound from "@/pages/not-found";
+import Career from "./pages/Career";
+import GalleryPage from "./pages/gallery";
+import Chatbot from "./components/chatbot";
+import ChatbotSummariesAdmin from "./pages/admin/chatbot-summaries";
+import CategoryManagement from "./pages/admin/category-management";
 
 function Router() {
   return (
@@ -32,6 +37,10 @@ function Router() {
 
       <Route path="/admin/login" component={AdminLogin} />
       <Route path="/admin" component={AdminDashboard} />
+      <Route path="/admin/category-management" component={CategoryManagement} />
+      <Route path="/career" component={Career} />
+      <Route path="/gallery" component={GalleryPage} />
+      <Route path="/admin/chatbot-summaries" component={ChatbotSummariesAdmin} />
       <Route component={NotFound} />
     </Switch>
   );
@@ -51,6 +60,7 @@ function App() {
               <Footer />
             </div>
             <Toaster />
+            <Chatbot />
           </CartProvider>
         </AuthProvider>
       </TooltipProvider>

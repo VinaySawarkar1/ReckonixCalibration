@@ -8,6 +8,8 @@ import { ShoppingCart, Download, ArrowLeft } from "lucide-react";
 import { Link } from "wouter";
 import { useCart } from "../context/cart-context";
 import { useToast } from "@/hooks/use-toast";
+import { Carousel, CarouselContent, CarouselItem, CarouselPrevious, CarouselNext } from "@/components/ui/carousel";
+import React from "react";
 
 export default function ProductDetail() {
   const { id } = useParams();
@@ -101,17 +103,13 @@ export default function ProductDetail() {
 
         {/* Product Overview */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 mb-12">
-          {/* Product Image */}
+          {/* Product Image Carousel */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
           >
-            <img 
-              src={product.imageUrl} 
-              alt={product.name}
-              className="w-full rounded-xl shadow-lg" 
-            />
+            <ProductImageCarousel product={product} />
           </motion.div>
 
           {/* Product Details */}
@@ -328,3 +326,53 @@ export default function ProductDetail() {
     </div>
   );
 }
+
+const ProductImageCarousel = ({ product }: { product: any }) => {
+  const images = product.imageGallery && product.imageGallery.length > 0
+    ? product.imageGallery
+    : [product.imageUrl];
+  const [index, setIndex] = React.useState(0);
+  const carouselRef = React.useRef<any>(null);
+  React.useEffect(() => {
+    const interval = setInterval(() => {
+      setIndex((prev) => (prev + 1) % images.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, [images.length]);
+  // Manual navigation
+  const goPrev = () => setIndex((prev) => (prev - 1 + images.length) % images.length);
+  const goNext = () => setIndex((prev) => (prev + 1) % images.length);
+  return (
+    <div className="relative">
+      <Carousel opts={{ loop: true }}>
+        <CarouselContent style={{ transform: `translateX(-${index * 100}%)`, transition: 'transform 0.6s' }}>
+          {images.map((img: string, i: number) => (
+            <CarouselItem key={i} className="flex items-center justify-center">
+              <img
+                src={img}
+                alt={product.name}
+                className="w-full rounded-xl shadow-lg object-cover max-h-[400px]"
+                style={{ maxWidth: 600 }}
+              />
+            </CarouselItem>
+          ))}
+        </CarouselContent>
+        {/* Navigation Arrows */}
+        <button
+          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow"
+          onClick={goPrev}
+          aria-label="Previous image"
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+        </button>
+        <button
+          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow"
+          onClick={goNext}
+          aria-label="Next image"
+        >
+          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
+        </button>
+      </Carousel>
+    </div>
+  );
+};

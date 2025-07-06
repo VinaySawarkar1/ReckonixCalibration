@@ -70,46 +70,52 @@ export default function Footer() {
             </h4>
             <div className="text-gray-300 text-sm space-y-2">
               <p>
-                123 Industrial Boulevard<br />
-                Tech Park, Mumbai 400001<br />
-                Maharashtra, India
+                Gera's Imperium Gateway, office A-205,<br />
+                opp. Bhosari Metro Station, Nashik Phata,<br />
+                Pune, Maharashtra 411034
               </p>
               <p className="flex items-center">
                 <Phone className="h-4 w-4 mr-2" />
-                +91 22 1234 5678
+                9175240313
               </p>
               <p className="flex items-center">
                 <Mail className="h-4 w-4 mr-2" />
-                info@reckonix.com
+                sales@reckonix.com
               </p>
-              <button className="text-maroon-400 hover:text-maroon-300 text-sm mt-2 flex items-center">
+              <button
+                className="text-maroon-400 hover:text-maroon-300 text-sm mt-2 flex items-center"
+                onClick={() => window.open('https://www.google.com/maps/dir/?api=1&destination=Gera\'s+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034', '_blank')}
+              >
                 <MapPin className="h-4 w-4 mr-1" />
                 Get Directions
               </button>
             </div>
           </div>
 
-          {/* Manufacturing Unit */}
+          {/* Workshop */}
           <div>
             <h4 className="font-semibold text-white mb-4 flex items-center">
               <Factory className="h-5 w-5 mr-2" />
-              Manufacturing Unit
+              Workshop
             </h4>
             <div className="text-gray-300 text-sm space-y-2">
               <p>
-                456 Manufacturing Lane<br />
-                Industrial Zone, Pune 411001<br />
-                Maharashtra, India
+                Plot No. BG/PAP3, Unit F2, MIDC,<br />
+                MIDC Road, Bhosari,<br />
+                Pune, Maharashtra 411026
               </p>
               <p className="flex items-center">
                 <Phone className="h-4 w-4 mr-2" />
-                +91 20 9876 5432
+                9175240313
               </p>
               <p className="flex items-center">
                 <Mail className="h-4 w-4 mr-2" />
-                factory@reckonix.com
+                sales@reckonix.com
               </p>
-              <button className="text-maroon-400 hover:text-maroon-300 text-sm mt-2 flex items-center">
+              <button
+                className="text-maroon-400 hover:text-maroon-300 text-sm mt-2 flex items-center"
+                onClick={() => window.open('https://maps.app.goo.gl/g7b7fjFM8Wb4Ynrc8', '_blank')}
+              >
                 <MapPin className="h-4 w-4 mr-1" />
                 Get Directions
               </button>
@@ -120,23 +126,32 @@ export default function Footer() {
         {/* Maps Section */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8 pt-8 border-t border-gray-800">
           <div>
-            <h5 className="font-semibold text-white mb-3">Mumbai Office Location</h5>
-            <div className="bg-gray-800 h-48 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="h-8 w-8 text-maroon-500 mx-auto mb-2" />
-                <p className="text-gray-400 text-sm">Interactive Google Map</p>
-                <p className="text-gray-500 text-xs">Corporate Office Location</p>
-              </div>
+            <h5 className="font-semibold text-white mb-3">Corporate Office Location</h5>
+            <div className="bg-gray-800 h-48 rounded-lg flex items-center justify-center mt-4">
+              <iframe
+                title="Corporate Office Map"
+                src="https://www.google.com/maps?q=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034&output=embed"
+                width="100%"
+                height="180"
+                style={{ border: 0 }}
+                allowFullScreen={true}
+                loading="lazy"
+              ></iframe>
             </div>
           </div>
           <div>
-            <h5 className="font-semibold text-white mb-3">Pune Factory Location</h5>
-            <div className="bg-gray-800 h-48 rounded-lg flex items-center justify-center">
-              <div className="text-center">
-                <MapPin className="h-8 w-8 text-maroon-500 mx-auto mb-2" />
-                <p className="text-gray-400 text-sm">Interactive Google Map</p>
-                <p className="text-gray-500 text-xs">Manufacturing Unit Location</p>
-              </div>
+            <h5 className="font-semibold text-white mb-3">Workshop Location</h5>
+            <div className="bg-gray-800 h-48 rounded-lg flex items-center justify-center mt-4">
+              <iframe
+                title="Workshop Map"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3780.9394956883684!2d73.82740987417215!3d18.621790966076567!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e5c1527d61%3A0x22027655dc385965!2sReckonix%20(%20Work%20Shop%20)!5e0!3m2!1sen!2sin!4v1751660068426!5m2!1sen!2sin"
+                width="100%"
+                height="180"
+                style={{ border: 0 }}
+                allowFullScreen={true}
+                loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
+              ></iframe>
             </div>
           </div>
         </div>

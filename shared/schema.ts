@@ -19,7 +19,8 @@ export const insertUserSchema = z.object({
 export const productSchema = z.object({
   id: z.number(),
   name: z.string(),
-  category: z.enum(['Calibration Systems', 'Testing Systems', 'Measuring Instruments']),
+  category: z.string(),
+  subcategory: z.string(),
   shortDescription: z.string(),
   fullTechnicalInfo: z.string(),
   specifications: z.array(z.object({
@@ -42,12 +43,14 @@ export const productSchema = z.object({
     compliance: z.array(z.string()).default([])
   }).optional(),
   views: z.number().default(0),
-  createdAt: z.date().default(() => new Date())
+  createdAt: z.date().default(() => new Date()),
+  homeFeatured: z.boolean().default(false)
 });
 
 export const insertProductSchema = z.object({
   name: z.string().min(1).max(200),
-  category: z.enum(['Calibration Systems', 'Testing Systems', 'Measuring Instruments']),
+  category: z.string(),
+  subcategory: z.string(),
   shortDescription: z.string().min(1).max(500),
   fullTechnicalInfo: z.string().min(1),
   specifications: z.array(z.object({
@@ -68,7 +71,8 @@ export const insertProductSchema = z.object({
     operatingConditions: z.string().optional(),
     warranty: z.string().optional(),
     compliance: z.array(z.string()).default([])
-  }).optional()
+  }).optional(),
+  homeFeatured: z.boolean().default(false)
 });
 
 // Quote Request Schema
@@ -192,6 +196,58 @@ export const insertCustomerSchema = z.object({
   featured: z.boolean().default(false)
 });
 
+// Job Schema
+export const jobSchema = z.object({
+  id: z.number(),
+  title: z.string(),
+  location: z.string(),
+  experience: z.string(),
+  description: z.string(),
+  createdAt: z.date().default(() => new Date())
+});
+
+export const insertJobSchema = z.object({
+  title: z.string().min(1).max(200),
+  location: z.string().min(1).max(100),
+  experience: z.string().min(1).max(100),
+  description: z.string().min(1).max(2000)
+});
+
+// Job Application Schema
+export const jobApplicationSchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  email: z.string().email(),
+  location: z.string(),
+  experience: z.string(),
+  resumeUrl: z.string(),
+  jobId: z.number(),
+  jobTitle: z.string(),
+  createdAt: z.date().default(() => new Date())
+});
+
+export const insertJobApplicationSchema = z.object({
+  name: z.string().min(1).max(100),
+  email: z.string().email(),
+  location: z.string().min(1).max(100),
+  experience: z.string().min(1).max(100),
+  resumeUrl: z.string().min(1),
+  jobId: z.number(),
+  jobTitle: z.string().min(1).max(200)
+});
+
+// Category Schema
+export const categorySchema = z.object({
+  id: z.number(),
+  name: z.string(),
+  subcategories: z.array(z.string())
+});
+
+export const insertCategorySchema = z.object({
+  name: z.string().min(1).max(100),
+  subcategories: z.array(z.string())
+});
+
 // Export types
 export type User = z.infer<typeof userSchema>;
 export type InsertUser = z.infer<typeof insertUserSchema>;
@@ -209,3 +265,27 @@ export type MainCatalog = z.infer<typeof mainCatalogSchema>;
 export type InsertMainCatalog = z.infer<typeof insertMainCatalogSchema>;
 export type Customer = z.infer<typeof customerSchema>;
 export type InsertCustomer = z.infer<typeof insertCustomerSchema>;
+export type Job = z.infer<typeof jobSchema>;
+export type InsertJob = z.infer<typeof insertJobSchema>;
+export type JobApplication = z.infer<typeof jobApplicationSchema>;
+export type InsertJobApplication = z.infer<typeof insertJobApplicationSchema>;
+export type Category = z.infer<typeof categorySchema>;
+export type InsertCategory = z.infer<typeof insertCategorySchema>;
+
+export interface Complaint {
+  id: string;
+  name: string;
+  email: string;
+  message: string;
+  status: 'open' | 'closed';
+  createdAt: string;
+}
+
+export interface ChatbotSummary {
+  sessionId: string;
+  type: string;
+  name?: string;
+  email?: string;
+  message: string;
+  createdAt: string;
+}

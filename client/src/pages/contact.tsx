@@ -61,7 +61,27 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="hero-bg text-white py-16">
+      <section className="relative bg-maroon-500 text-white py-6 overflow-hidden">
+        {/* Geometric Line Pattern Overlay */}
+        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <g stroke="white" stroke-width="2" opacity="0.5">
+            <polyline points="0,100 300,100 400,200 700,200" />
+            <polyline points="200,0 500,0 600,100 900,100" />
+            <polyline points="400,200 700,200 800,300 1100,300" />
+            <polyline points="600,100 900,100 1000,200 1300,200" />
+            <polyline points="800,300 1100,300 1200,400 1440,400" />
+            <polyline points="1000,200 1300,200 1400,300 1440,300" />
+            <polyline points="100,50 400,50 500,150 800,150" />
+            <polyline points="300,150 600,150 700,250 1000,250" />
+            <polyline points="500,250 800,250 900,350 1200,350" />
+            <polyline points="700,50 1000,50 1100,150 1400,150" />
+            <polyline points="900,150 1200,150 1300,250 1440,250" />
+            <polyline points="1100,250 1400,250 1440,350 1440,350" />
+            <polyline points="0,200 200,200 300,300 500,300" />
+            <polyline points="200,300 400,300 500,400 700,400" />
+            <polyline points="600,350 900,350 1000,400 1200,400" />
+          </g>
+        </svg>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div 
             className="text-center"
@@ -69,7 +89,7 @@ export default function Contact() {
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.8 }}
           >
-            <h1 className="font-cinzel text-4xl md:text-5xl font-bold mb-6">Get In Touch</h1>
+            <h1 className="font-cinzel text-3xl md:text-4xl font-bold mb-6 heading-white">Get In Touch</h1>
             <p className="text-xl text-gray-200 max-w-3xl mx-auto">
               Ready to discuss your calibration and testing needs? We're here to help you find the perfect solution.
             </p>
@@ -90,35 +110,52 @@ export default function Contact() {
               <h2 className="font-cinzel text-3xl font-bold text-gray-900 mb-8">Contact Information</h2>
               
               <div className="space-y-8">
+                {/* Existing Corporate Office */}
                 <div className="flex items-start">
                   <div className="w-12 h-12 bg-maroon-500 rounded-full flex items-center justify-center mr-6 flex-shrink-0">
                     <Building className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Corporate Office</h3>
+                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Corporate Office (Gera's Imperium Gateway)</h3>
                     <p className="text-gray-600 mb-2">
-                      123 Industrial Boulevard<br />
-                      Tech Park, Mumbai 400001<br />
-                      Maharashtra, India
+                      Gera's Imperium Gateway, office A-205,<br />
+                      opp. Bhosari Metro Station, Nashik Phata,<br />
+                      Pune, Maharashtra 411034
                     </p>
-                    <p className="text-gray-600"><Phone className="inline h-4 w-4 mr-1" /> +91 22 1234 5678</p>
-                    <p className="text-gray-600"><Mail className="inline h-4 w-4 mr-1" /> info@reckonix.com</p>
+                    <p className="text-gray-600"><Phone className="inline h-4 w-4 mr-1" /> 9175240313</p>
+                    <p className="text-gray-600"><Mail className="inline h-4 w-4 mr-1" /> sales@reckonix.com</p>
+                    <a
+                      href="https://www.google.com/maps/dir/?api=1&destination=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-maroon-500 hover:underline text-sm flex items-center mt-2"
+                    >
+                      <MapPin className="h-4 w-4 mr-1" /> Get Directions
+                    </a>
                   </div>
                 </div>
-
+                {/* Workshop Address */}
                 <div className="flex items-start">
-                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-6 flex-shrink-0">
+                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mr-6 flex-shrink-0">
                     <Factory className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Manufacturing Unit</h3>
+                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Workshop</h3>
                     <p className="text-gray-600 mb-2">
-                      456 Manufacturing Lane<br />
-                      Industrial Zone, Pune 411001<br />
-                      Maharashtra, India
+                      Plot No. BG/PAP3, Unit F2, MIDC,<br />
+                      MIDC Road, Bhosari,<br />
+                      Pune, Maharashtra 411026
                     </p>
-                    <p className="text-gray-600"><Phone className="inline h-4 w-4 mr-1" /> +91 20 9876 5432</p>
-                    <p className="text-gray-600"><Mail className="inline h-4 w-4 mr-1" /> factory@reckonix.com</p>
+                    <p className="text-gray-600"><Phone className="inline h-4 w-4 mr-1" /> 9175240313</p>
+                    <p className="text-gray-600"><Mail className="inline h-4 w-4 mr-1" /> sales@reckonix.com</p>
+                    <a
+                      href="https://maps.app.goo.gl/g7b7fjFM8Wb4Ynrc8"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-maroon-500 hover:underline text-sm flex items-center mt-2"
+                    >
+                      <MapPin className="h-4 w-4 mr-1" /> Get Directions
+                    </a>
                   </div>
                 </div>
 
@@ -140,11 +177,49 @@ export default function Contact() {
               {/* Map Placeholder */}
               <div className="mt-8">
                 <h3 className="font-semibold text-lg text-gray-900 mb-4">Our Locations</h3>
-                <div className="bg-gray-200 h-64 rounded-lg flex items-center justify-center">
-                  <div className="text-center">
-                    <MapPin className="h-12 w-12 text-maroon-500 mx-auto mb-4" />
-                    <p className="text-gray-600 font-medium">Interactive Google Map</p>
-                    <p className="text-sm text-gray-500">Mumbai & Pune Office Locations</p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  {/* Corporate Office Map */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Corporate Office (Gera's Imperium Gateway)</h4>
+                    <iframe
+                      title="Corporate Office Map"
+                      src="https://www.google.com/maps?q=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034&output=embed"
+                      width="100%"
+                      height="200"
+                      style={{ border: 0 }}
+                      allowFullScreen={true}
+                      loading="lazy"
+                    ></iframe>
+                    <a
+                      href="https://www.google.com/maps/dir/?api=1&destination=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-maroon-500 hover:underline text-sm flex items-center mt-2"
+                    >
+                      <MapPin className="h-4 w-4 mr-1" /> Get Directions
+                    </a>
+                  </div>
+                  {/* Workshop Map */}
+                  <div>
+                    <h4 className="font-semibold text-gray-900 mb-2">Workshop</h4>
+                    <iframe
+                      title="Workshop Map"
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3780.9394956883684!2d73.82740987417215!3d18.621790966076567!2m3!1f0!2f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e5c1527d61%3A0x22027655dc385965!2sReckonix%20(%20Work%20Shop%20)!5e0!3m2!1sen!2sin!4v1751660068426!5m2!1sen!2sin"
+                      width="100%"
+                      height="200"
+                      style={{ border: 0 }}
+                      allowFullScreen={true}
+                      loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
+                    ></iframe>
+                    <a
+                      href="https://maps.app.goo.gl/g7b7fjFM8Wb4Ynrc8"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="text-maroon-500 hover:underline text-sm flex items-center mt-2"
+                    >
+                      <MapPin className="h-4 w-4 mr-1" /> Get Directions
+                    </a>
                   </div>
                 </div>
               </div>
