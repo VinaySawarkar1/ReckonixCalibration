@@ -15,7 +15,8 @@ export default function Contact() {
     name: "",
     email: "",
     phone: "",
-    message: ""
+    subject: "",
+    message: "",
   });
 
   const { toast } = useToast();
@@ -27,16 +28,35 @@ export default function Contact() {
         title: "Message Sent Successfully",
         description: "Thank you for contacting us. We'll get back to you soon!",
       });
-      setFormData({ name: "", email: "", phone: "", message: "" });
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
     },
-    onError: () => {
+    onError: (error: any) => {
+      let description = "Failed to send message. Please try again.";
+      if (error instanceof Error) {
+        try {
+          // Try to parse the error message for backend details
+          const errObj = JSON.parse(error.message.split(": ").slice(1).join(": "));
+          if (errObj.details) {
+            description = errObj.details;
+          } else if (errObj.message) {
+            description = errObj.message;
+          }
+        } catch {
+          // fallback to default
+        }
+      }
       toast({
         title: "Error",
-        description: "Failed to send message. Please try again.",
+        description,
         variant: "destructive",
       });
+    },
+    onSettled: () => {
+      setFormData({ name: "", email: "", phone: "", subject: "", message: "" });
     }
   });
+
+  const validateEmail = (email: string) => /\S+@\S+\.\S+/.test(email);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -44,6 +64,30 @@ export default function Contact() {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (formData.name.trim().length < 2) {
+      toast({
+        title: "Invalid Name",
+        description: "Name must be at least 2 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (!validateEmail(formData.email)) {
+      toast({
+        title: "Invalid Email",
+        description: "Please enter a valid email address.",
+        variant: "destructive",
+      });
+      return;
+    }
+    if (formData.message.trim().length < 10) {
+      toast({
+        title: "Message Too Short",
+        description: "Message must be at least 10 characters.",
         variant: "destructive",
       });
       return;
@@ -61,7 +105,7 @@ export default function Contact() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-maroon-500 text-white py-6 overflow-hidden">
+      <section className="relative bg-[#800000] text-white py-6 overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g stroke="white" stroke-width="2" opacity="0.5">
@@ -110,22 +154,22 @@ export default function Contact() {
               <h2 className="font-cinzel text-3xl font-bold text-gray-900 mb-8">Contact Information</h2>
               
               <div className="space-y-8">
-                {/* Existing Corporate Office */}
+                {/* Corporate Office */}
                 <div className="flex items-start">
                   <div className="w-12 h-12 bg-maroon-500 rounded-full flex items-center justify-center mr-6 flex-shrink-0">
                     <Building className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Corporate Office (Gera's Imperium Gateway)</h3>
+                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Corporate Office</h3>
                     <p className="text-gray-600 mb-2">
-                      Gera's Imperium Gateway, office A-205,<br />
-                      opp. Bhosari Metro Station, Nashik Phata,<br />
+                      Gera's Imperium Gateway, office A-205, opp. Bhosari Metro Station, Nashik Phata,<br />
                       Pune, Maharashtra 411034
                     </p>
-                    <p className="text-gray-600"><Phone className="inline h-4 w-4 mr-1" /> 9175240313</p>
-                    <p className="text-gray-600"><Mail className="inline h-4 w-4 mr-1" /> sales@reckonix.com</p>
+                    <p className="text-gray-600"><Phone className="inline h-4 w-4 mr-1" /> 9175240313, 9823081155</p>
+                    <p className="text-gray-600"><Mail className="inline h-4 w-4 mr-1" /> sales@reckonix.co.in, sales@reckonix.in</p>
+                    <p className="text-gray-600 mb-2"><strong>GST No.:</strong> 27ABGFR0875B1ZA</p>
                     <a
-                      href="https://www.google.com/maps/dir/?api=1&destination=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034"
+                      href="https://maps.app.goo.gl/3Qw2Qw2Qw2Qw2Qw2A" // Update with correct Google Maps link if available
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-maroon-500 hover:underline text-sm flex items-center mt-2"
@@ -134,20 +178,20 @@ export default function Contact() {
                     </a>
                   </div>
                 </div>
-                {/* Workshop Address */}
+                {/* Manufacturing Facility */}
                 <div className="flex items-start">
                   <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mr-6 flex-shrink-0">
                     <Factory className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Workshop</h3>
+                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Manufacturing Unit</h3>
                     <p className="text-gray-600 mb-2">
-                      Plot No. BG/PAP3, Unit F2, MIDC,<br />
-                      MIDC Road, Bhosari,<br />
+                      PLOT NO, BG/PAP3, MIDC, MIDC Chowk, Bhosari,<br />
                       Pune, Maharashtra 411026
                     </p>
-                    <p className="text-gray-600"><Phone className="inline h-4 w-4 mr-1" /> 9175240313</p>
-                    <p className="text-gray-600"><Mail className="inline h-4 w-4 mr-1" /> sales@reckonix.com</p>
+                    <p className="text-gray-600"><Phone className="inline h-4 w-4 mr-1" /> 9175240313, 9823081155</p>
+                    <p className="text-gray-600"><Mail className="inline h-4 w-4 mr-1" /> sales@reckonix.co.in, sales@reckonix.in</p>
+                    <p className="text-gray-600 mb-2"><strong>Service Location:</strong> Pan India</p>
                     <a
                       href="https://maps.app.goo.gl/g7b7fjFM8Wb4Ynrc8"
                       target="_blank"
@@ -158,17 +202,20 @@ export default function Contact() {
                     </a>
                   </div>
                 </div>
-
+                {/* General Contact Info */}
                 <div className="flex items-start">
-                  <div className="w-12 h-12 bg-green-500 rounded-full flex items-center justify-center mr-6 flex-shrink-0">
+                  <div className="w-12 h-12 bg-blue-500 rounded-full flex items-center justify-center mr-6 flex-shrink-0">
                     <Mail className="h-6 w-6 text-white" />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Sales & Support</h3>
+                    <h3 className="font-semibold text-lg text-gray-900 mb-2">Contact Information</h3>
                     <p className="text-gray-600">
-                      <strong>Sales:</strong> sales@reckonix.com<br />
-                      <strong>Support:</strong> support@reckonix.com<br />
-                      <strong>General:</strong> info@reckonix.com
+                      <strong>Phone:</strong> 9175240313, 9823081155<br />
+                      <strong>Email:</strong> marketing@reckonix.co.in<br />
+                      <strong>Sales:</strong> sales@reckonix.co.in<br />
+                      <strong>Support:</strong> support@reckonix.co.in<br />
+                      <strong>General:</strong> info@reckonix.co.in<br />
+                      
                     </p>
                   </div>
                 </div>
@@ -180,10 +227,10 @@ export default function Contact() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   {/* Corporate Office Map */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Corporate Office (Gera's Imperium Gateway)</h4>
+                    <h4 className="font-semibold text-gray-900 mb-2">Corporate Office</h4>
                     <iframe
                       title="Corporate Office Map"
-                      src="https://www.google.com/maps?q=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034&output=embed"
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.176837774971!2d73.8149058710421!3d18.611114227750015!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9dfa87ebe4d%3A0xe95a3ca7b090d08a!2sReckonix%20(%20Corporate%20office%20)!5e0!3m2!1sen!2sin!4v1752172357866!5m2!1sen!2sin"
                       width="100%"
                       height="200"
                       style={{ border: 0 }}
@@ -191,7 +238,7 @@ export default function Contact() {
                       loading="lazy"
                     ></iframe>
                     <a
-                      href="https://www.google.com/maps/dir/?api=1&destination=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034"
+                      href="https://maps.app.goo.gl/3Qw2Qw2Qw2Qw2Qw2A"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-maroon-500 hover:underline text-sm flex items-center mt-2"
@@ -201,10 +248,10 @@ export default function Contact() {
                   </div>
                   {/* Workshop Map */}
                   <div>
-                    <h4 className="font-semibold text-gray-900 mb-2">Workshop</h4>
+                    <h4 className="font-semibold text-gray-900 mb-2">Manufacturing Unit</h4>
                     <iframe
-                      title="Workshop Map"
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3780.9394956883684!2d73.82740987417215!3d18.621790966076567!2m3!1f0!2f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e5c1527d61%3A0x22027655dc385965!2sReckonix%20(%20Work%20Shop%20)!5e0!3m2!1sen!2sin!4v1751660068426!5m2!1sen!2sin"
+                      title="Manufacturing Facility Map"
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3780.9394956883684!2d73.82740987417216!3d18.62179096607656!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e5c1527d61%3A0x22027655dc385965!2sReckonix%20(%20Manufacturing%20)!5e0!3m2!1sen!2sin!4v1752174210521!5m2!1sen!2sin"
                       width="100%"
                       height="200"
                       style={{ border: 0 }}
@@ -270,6 +317,24 @@ export default function Contact() {
                     </div>
 
                     <div>
+                      <Label htmlFor="subject" className="text-sm font-medium text-gray-700 mb-2 block">
+                        Subject *
+                      </Label>
+                      <Input
+                        id="subject"
+                        name="subject"
+                        type="text"
+                        required
+                        value={formData.subject}
+                        onChange={handleInputChange}
+                        placeholder="Subject"
+                        minLength={2}
+                        maxLength={200}
+                        className="h-12 focus:ring-maroon-500 focus:border-maroon-500"
+                      />
+                    </div>
+
+                    <div>
                       <Label htmlFor="phone" className="text-sm font-medium text-gray-700 mb-2 block">
                         Phone
                       </Label>
@@ -302,7 +367,7 @@ export default function Contact() {
 
                     <Button 
                       type="submit" 
-                      className="w-full bg-maroon-500 text-white px-6 py-3 h-12 hover:bg-maroon-600 transition-all transform hover:scale-[1.02]"
+                      className="w-full bg-[#800000] text-white px-6 py-3 h-12 hover:bg-[#6b0000] transition-all transform hover:scale-[1.02]"
                       disabled={submitMessage.isPending}
                     >
                       {submitMessage.isPending ? (

@@ -1,6 +1,11 @@
+import dotenv from "dotenv";
+dotenv.config();
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
+
+console.log('CWD:', process.cwd());
+console.log('DATABASE_URL:', process.env.DATABASE_URL);
 
 const app = express();
 app.use(express.json());

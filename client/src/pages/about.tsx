@@ -14,7 +14,7 @@ export default function About() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-maroon-500 text-white py-6 overflow-hidden">
+      <section className="relative bg-[#800000] text-white py-6 overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g stroke="white" stroke-width="2" opacity="0.5">
@@ -61,7 +61,7 @@ export default function About() {
               transition={{ duration: 0.6 }}
             >
               <img 
-                src="https://images.unsplash.com/photo-1565514020179-026b92b84bb6?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600" 
+                src="https://images.unsplash.com/photo-1542744173-8e7e53415bb0?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D" 
                 alt="Reckonix manufacturing facility" 
                 className="rounded-xl shadow-lg w-full h-auto" 
               />
@@ -74,13 +74,13 @@ export default function About() {
             >
               <h2 className="font-cinzel text-3xl font-bold text-gray-900 mb-6">Our Story</h2>
               <p className="text-gray-600 text-lg mb-6 leading-relaxed">
-                Founded in 2002, Reckonix began as a small precision instrument manufacturer with a vision to revolutionize calibration and testing technologies. Over two decades, we have grown into a global leader, serving industries across 25+ countries with our cutting-edge solutions.
+                Reckonix is a leading manufacturer and supplier of Calibration Systems, Testing Systems, and Measuring Instruments. With a strong commitment to quality and innovation, we have established ourselves as a trusted name in the industry. Our products are designed to meet the highest standards of accuracy and reliability, serving a wide range of industries including automotive, aerospace, pharmaceuticals, and manufacturing.
               </p>
               <p className="text-gray-600 text-lg mb-6 leading-relaxed">
-                Our commitment to innovation, quality, and customer satisfaction has driven us to establish state-of-the-art manufacturing facilities and develop partnerships with leading research institutions worldwide.
+                Our state-of-the-art manufacturing facility is equipped with advanced technology and a skilled workforce, enabling us to deliver customized solutions to our clients. We are ISO 9001:2015 certified and have a global presence, with a dedicated team providing 24/7 support to our customers.
               </p>
               <p className="text-gray-600 text-lg leading-relaxed">
-                Today, Reckonix stands at the forefront of precision engineering, with over 500 calibration labs setup globally and a team of 150+ dedicated professionals working tirelessly to advance measurement science.
+                At Reckonix, we believe in continuous improvement and strive to exceed customer expectations through our commitment to excellence, integrity, and customer satisfaction. Our mission is to deliver world-class testing, measuring, and calibration systems, ensuring a seamless customer experience and building a strong global presence. We are proud to partner with industry leaders and to be recognized for our innovation, reliability, and service excellence.
               </p>
             </motion.div>
           </div>
@@ -169,24 +169,24 @@ export default function About() {
                 <div>
                   <h3 className="font-semibold text-xl text-gray-900 mb-3">Corporate Office</h3>
                   <p className="text-gray-600 mb-4">
-                    123 Industrial Boulevard<br />
-                    Tech Park, Mumbai 400001<br />
-                    Maharashtra, India
+                    Gera's Imperium Gateway, office A-205, opp. Bhosari Metro Station, Nashik Phata,<br />
+                    Pune, Maharashtra 411034
                   </p>
-                  <p className="text-gray-600 mb-2"><strong>Phone:</strong> +91 22 1234 5678</p>
-                  <p className="text-gray-600 mb-4"><strong>Email:</strong> info@reckonix.com</p>
+                  <p className="text-gray-600 mb-2"><strong>Phone:</strong> 9175240313, 9823081155</p>
+                  <p className="text-gray-600 mb-4"><strong>Email:</strong> sales@reckonix.co.in, sales@reckonix.in</p>
                   <div className="bg-gray-200 h-48 rounded-lg flex items-center justify-center mb-4">
                     <iframe
                       title="Corporate Office Map"
-                      src="https://www.google.com/maps?q=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034&output=embed"
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.176837774971!2d73.8149058710421!3d18.611114227750015!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9dfa87ebe4d%3A0xe95a3ca7b090d08a!2sReckonix%20(%20Corporate%20office%20)!5e0!3m2!1sen!2sin!4v1752172357866!5m2!1sen!2sin"
                       width="100%"
                       height="180"
                       style={{ border: 0 }}
                       allowFullScreen={true}
                       loading="lazy"
+                      referrerPolicy="no-referrer-when-downgrade"
                     ></iframe>
                     <a
-                      href="https://www.google.com/maps/dir/?api=1&destination=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034"
+                      href="https://maps.app.goo.gl/ReckonixCorporateOffice"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-maroon-500 hover:underline text-xs flex items-center mt-2 absolute bottom-2 left-2"
@@ -212,18 +212,17 @@ export default function About() {
                   <Building className="h-6 w-6 text-white" />
                 </div>
                 <div>
-                  <h3 className="font-semibold text-xl text-gray-900 mb-3">Workshop</h3>
+                  <h3 className="font-semibold text-xl text-gray-900 mb-3">Manufacturing Unit</h3>
                   <p className="text-gray-600 mb-4">
-                    Plot No. BG/PAP3, Unit F2, MIDC,<br />
-                    MIDC Road, Bhosari,<br />
+                    PLOT NO, BG/PAP3, UNIT F2, MIDC, MIDC Rd, Bhosari,<br />
                     Pune, Maharashtra 411026
                   </p>
-                  <p className="text-gray-600 mb-2"><strong>Phone:</strong> 9175240313</p>
-                  <p className="text-gray-600 mb-4"><strong>Email:</strong> sales@reckonix.com</p>
+                  <p className="text-gray-600 mb-2"><strong>Phone:</strong> 9175240313, 9823081155</p>
+                  <p className="text-gray-600 mb-4"><strong>Email:</strong> sales@reckonix.co.in, sales@reckonix.in</p>
                   <div className="bg-gray-200 h-48 rounded-lg flex items-center justify-center mb-4">
                     <iframe
-                      title="Workshop Map"
-                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3780.9394956883684!2d73.82740987417215!3d18.621790966076567!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e5c1527d61%3A0x22027655dc385965!2sReckonix%20(%20Work%20Shop%20)!5e0!3m2!1sen!2sin!4v1751660068426!5m2!1sen!2sin"
+                      title="Manufacturing Facility Map"
+                      src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3780.9394956883684!2d73.82740987417216!3d18.62179096607656!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e5c1527d61%3A0x22027655dc385965!2sReckonix%20(%20Manufacturing%20)!5e0!3m2!1sen!2sin!4v1752174210521!5m2!1sen!2sin"
                       width="100%"
                       height="180"
                       style={{ border: 0 }}
@@ -232,7 +231,7 @@ export default function About() {
                       referrerPolicy="no-referrer-when-downgrade"
                     ></iframe>
                     <a
-                      href="https://maps.app.goo.gl/g7b7fjFM8Wb4Ynrc8"
+                      href="https://maps.app.goo.gl/ReckonixManufacturing"
                       target="_blank"
                       rel="noopener noreferrer"
                       className="text-maroon-500 hover:underline text-xs flex items-center mt-2 absolute bottom-2 left-2"

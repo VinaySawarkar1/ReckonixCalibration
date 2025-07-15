@@ -1,4 +1,4 @@
-import React, { useReducer, useState, useEffect } from "react";
+import React, { useReducer, useState, useEffect, useRef } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
@@ -22,7 +22,8 @@ import {
   Trash2,
   Search,
   X,
-  FolderOpen
+  FolderOpen,
+  GripVertical
 } from "lucide-react";
 import { useAuth } from "../../context/auth-context";
 import { useToast } from "@/hooks/use-toast";
@@ -31,24 +32,51 @@ import { apiRequest, apiRequestWithFiles } from "@/lib/queryClient";
 import { Link } from "wouter";
 import type { Product, QuoteRequest, ContactMessage } from "../../../../shared/schema";
 import ProductFormV2 from "./product-form-v2";
+import CategoryManagement from "./category-management";
+import ProductReorder from "./product-reorder";
 
 // Subcategories mapping for product categories
 const subcategories: Record<string, string[]> = {
   "Calibration Systems": [
-    "Electrical Calibration",
-    "Mechanical Calibration",
-    "Thermal Calibration",
-    "Pressure Calibration"
+    "Dimension Calibrators",
+    "Electrical Calibrators",
+    "Thermal Calibrator",
+    "Pressure Calibrator",
+    "Mass and Volume",
+    "Flow Calibrator"
   ],
-  "Testing Machines": [
-    "Universal Testing Machine",
-    "Compression Testing Machine",
-    "Tensile Testing Machine"
+  "Metrology Systems": [
+    "Universal Testing Machines",
+    "Compression Testing Machines",
+    "Tensile Testing Machines",
+    "Hardness Testing Machines",
+    "Impact Testing Machines",
+    "Fatigue Testing Machines",
+    "Torsion Testing Machines",
+    "Spring Testing Machines",
+    "Bend Testing Machines",
+    "Shear Testing Machines",
+    "Peel Testing Machines",
+    "Custom Testing Solutions"
   ],
-  "Measuring Instruments": [
-    "Micrometers",
-    "Calipers",
-    "Height Gauges"
+  "Measuring Systems": [
+    "Coordinate Measuring Machines (CMM)",
+    "Optical Measuring Systems",
+    "Laser Measuring Systems",
+    "Digital Calipers",
+    "Digital Micrometers",
+    "Height Gauges",
+    "Surface Roughness Testers",
+    "Profile Projectors",
+    "Toolmakers Microscopes",
+    "Gauge Blocks",
+    "Dial Indicators",
+    "Digital Indicators",
+    "Angle Measuring Instruments",
+    "Thickness Gauges",
+    "Roundness Testers",
+    "Flatness Testers",
+    "Straightness Testers"
   ],
   // Add more categories and subcategories as needed
 };
@@ -82,101 +110,13 @@ function productReducer(state, action) {
   return { ...state, [action.field]: action.value };
 }
 
-const AdminJobs: React.FC = () => {
-  const [jobs, setJobs] = useState([]);
-  const [applications, setApplications] = useState([]);
-  const [form, setForm] = useState({
-    title: '',
-    location: '',
-    experience: '',
-    description: '',
-  });
-  const [message, setMessage] = useState('');
-
-  useEffect(() => {
-    fetch('/api/jobs').then(res => res.json()).then(setJobs);
-    fetch('/api/applications').then(res => res.json()).then(setApplications);
-  }, []);
-
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    const res = await fetch('/api/jobs', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(form),
-    });
-    if (res.ok) {
-      setMessage('Job added!');
-      setForm({ title: '', location: '', experience: '', description: '' });
-      fetch('/api/jobs').then(res => res.json()).then(setJobs);
-    } else {
-      setMessage('Failed to add job.');
-    }
-  };
-
-  return (
-    <div className="mt-12">
-      <h2 className="text-2xl font-bold mb-4">Job Management</h2>
-      <form className="bg-gray-50 p-4 rounded mb-8" onSubmit={handleSubmit}>
-        <div className="mb-2">
-          <input name="title" value={form.title} onChange={handleChange} required placeholder="Job Title" className="border p-2 w-full" />
-        </div>
-        <div className="mb-2">
-          <input name="location" value={form.location} onChange={handleChange} required placeholder="Location" className="border p-2 w-full" />
-        </div>
-        <div className="mb-2">
-          <input name="experience" value={form.experience} onChange={handleChange} required placeholder="Experience" className="border p-2 w-full" />
-        </div>
-        <div className="mb-2">
-          <textarea name="description" value={form.description} onChange={handleChange} required placeholder="Description" className="border p-2 w-full" />
-        </div>
-        <button className="bg-maroon-500 text-white px-4 py-2 rounded" type="submit">Add Job</button>
-        {message && <div className="mt-2 text-green-600">{message}</div>}
-      </form>
-      <h3 className="text-xl font-semibold mb-2">Current Jobs</h3>
-      <ul className="mb-8">
-        {jobs.map((job: any) => (
-          <li key={job.id} className="mb-2 p-2 border rounded bg-white">
-            <div className="font-bold">{job.title}</div>
-            <div className="text-sm text-gray-600">{job.location} | {job.experience}</div>
-            <div className="text-gray-700">{job.description}</div>
-          </li>
-        ))}
-      </ul>
-      <h3 className="text-xl font-semibold mb-2">Job Applications</h3>
-      <table className="w-full bg-white rounded shadow">
-        <thead>
-          <tr>
-            <th className="p-2 border">Name</th>
-            <th className="p-2 border">Email</th>
-            <th className="p-2 border">Location</th>
-            <th className="p-2 border">Experience</th>
-            <th className="p-2 border">Job</th>
-            <th className="p-2 border">Resume</th>
-          </tr>
-        </thead>
-        <tbody>
-          {applications.map((app: any) => (
-            <tr key={app.id}>
-              <td className="p-2 border">{app.name}</td>
-              <td className="p-2 border">{app.email}</td>
-              <td className="p-2 border">{app.location}</td>
-              <td className="p-2 border">{app.experience}</td>
-              <td className="p-2 border">{app.jobTitle}</td>
-              <td className="p-2 border">
-                <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-maroon-500 underline">Download</a>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
-    </div>
-  );
-};
+const jobTypeOptions = [
+  'Full Time',
+  'Part Time',
+  'Contract',
+  'Internship',
+  'Temporary',
+];
 
 export default function AdminDashboard() {
   const { user, logout } = useAuth();
@@ -220,8 +160,44 @@ export default function AdminDashboard() {
     description: "",
     website: "",
     industry: "Aerospace & Defense" as const,
-    featured: false
+    featured: false,
+    location: ""
   });
+
+  const [reorderLoading, setReorderLoading] = useState(false);
+
+  const [catalogUploading, setCatalogUploading] = useState(false);
+  const [catalogUploadError, setCatalogUploadError] = useState("");
+  const catalogFileInputRef = useRef<HTMLInputElement>(null);
+
+  const [editingJob, setEditingJob] = useState(null);
+
+  const [form, setForm] = useState({
+    title: '',
+    location: '',
+    requirements: '',
+    description: '',
+    type: jobTypeOptions[0],
+    experience: '',
+    salary: '',
+  });
+
+  const [message, setMessage] = useState('');
+
+  const [jobs, setJobs] = useState([]);
+  const [applications, setApplications] = useState([]);
+
+  useEffect(() => {
+    fetch('/api/jobs')
+      .then(res => res.json())
+      .then(setJobs);
+  }, []);
+
+  useEffect(() => {
+    fetch('/api/applications')
+      .then(res => res.json())
+      .then(setApplications);
+  }, []);
 
   // Redirect if not authenticated
   useEffect(() => {
@@ -302,18 +278,26 @@ export default function AdminDashboard() {
   };
 
   const exportQuotes = () => {
-    const exportData = quotes.map(quote => ({
+    const exportData = quotes.map(quote => {
+      let products = [];
+      try {
+        products = typeof quote.products === "string" ? JSON.parse(quote.products) : (quote.products || []);
+      } catch {
+        products = [];
+      }
+      return {
       id: quote.id,
-      customerName: quote.customerName,
-      customerEmail: quote.customerEmail,
-      customerPhone: quote.customerPhone,
-      customerLocation: quote.customerLocation || '',
-      productsCount: quote.products.length,
-      productNames: quote.products.map(p => p.name).join('; '),
+        name: quote.name,
+        email: quote.email,
+        phone: quote.phone || '',
+        company: quote.company || '',
+        productsCount: products.length,
+        productNames: products.map(p => p.name).join('; '),
       message: quote.message || '',
       status: quote.status,
       createdAt: new Date(quote.createdAt).toLocaleDateString()
-    }));
+      };
+    });
     exportToCSV(exportData, 'quotes');
   };
 
@@ -841,7 +825,8 @@ export default function AdminDashboard() {
       description: "",
       website: "",
       industry: "Aerospace & Defense",
-      featured: false
+      featured: false,
+      location: ""
     });
   };
 
@@ -855,7 +840,22 @@ export default function AdminDashboard() {
 
   const handleUpdateCustomer = () => {
     if (editingCustomer) {
-      updateCustomer.mutate({ id: editingCustomer.id, data: editingCustomer });
+      const { name, logoUrl, category, industry, featured, description, website, location } = editingCustomer;
+      if (!name?.trim() || !logoUrl?.trim() || !category?.trim() || !industry?.trim()) {
+        alert("Name, Logo URL, Category, and Industry are required.");
+        return;
+      }
+      const payload = {
+        name: name.trim(),
+        logoUrl: logoUrl.trim(),
+        category: category.trim(),
+        industry: industry.trim(),
+        featured: !!featured,
+        description: description || "",
+        website: website || "",
+        location: location || ""
+      };
+      updateCustomer.mutate({ id: editingCustomer.id, data: payload });
     }
   };
 
@@ -878,10 +878,8 @@ export default function AdminDashboard() {
   async function handleAddProductV2(data: any) {
     const formData = new FormData();
     Object.entries(data).forEach(([key, value]) => {
-      if (key === "images") {
+      if (key === "images" && Array.isArray(value)) {
         value.forEach((file: File) => formData.append("images", file));
-      } else if (key === "homeFeatured") {
-        formData.append("homeFeatured", value ? "true" : "false");
       } else if (
         key === "specifications" ||
         key === "featuresBenefits" ||
@@ -900,39 +898,173 @@ export default function AdminDashboard() {
   }
 
   async function handleUpdateProductV2(data: any) {
-    if (!editingProduct) return;
-    const formData = new FormData();
-    // Ensure imageUrl is always present
-    if (!data.images || data.images.length === 0) {
-      formData.append('imageUrl', editingProduct.imageUrl || '');
+    try {
+      let response;
+      if (data.images && data.images.length > 0) {
+        // Use FormData for file upload
+        const formData = new FormData();
+        Object.entries(data).forEach(([key, value]) => {
+          if (key === "images" && Array.isArray(value)) {
+            value.forEach((file: File) => formData.append("images", file));
+          } else if (key === "existingImages" && Array.isArray(value)) {
+            formData.append(key, JSON.stringify(value));
+          } else if (
+            key === "specifications" ||
+            key === "featuresBenefits" ||
+            key === "applications" ||
+            key === "certifications" ||
+            key === "technicalDetails"
+          ) {
+            formData.append(key, JSON.stringify(value));
+          } else if (value !== undefined && value !== null) {
+            formData.append(key, value);
+          }
+        });
+        response = await fetch(`/api/products/${editingProduct.id}`, {
+          method: "PUT",
+          body: formData,
+        });
+      } else {
+        // Send as JSON
+        const dataToSend = {
+          ...data,
+          specifications: JSON.stringify(data.specifications),
+          featuresBenefits: JSON.stringify(data.featuresBenefits),
+          applications: JSON.stringify(data.applications),
+          certifications: JSON.stringify(data.certifications),
+          technicalDetails: JSON.stringify(data.technicalDetails),
+          existingImages: data.existingImages ? JSON.stringify(data.existingImages) : undefined,
+        };
+        response = await fetch(`/api/products/${editingProduct.id}`, {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(dataToSend),
+      });
+      }
+      
+      if (response.ok) {
+        const updatedProduct = await response.json();
+        setEditingProduct(null);
+        toast({
+          title: "Success",
+          description: "Product updated successfully",
+        });
+      } else {
+        throw new Error("Failed to update product");
+      }
+    } catch (error) {
+      console.error("Error updating product:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update product",
+        variant: "destructive",
+      });
     }
-    Object.entries(data).forEach(([key, value]) => {
-      if (key === "images") {
-        value.forEach((file: File) => formData.append("images", file));
-      } else if (key === "homeFeatured") {
-        formData.append("homeFeatured", value ? "true" : "false");
-      } else if (
-        key === "specifications" ||
-        key === "featuresBenefits" ||
-        key === "applications" ||
-        key === "certifications" ||
-        key === "technicalDetails"
-      ) {
-        formData.append(key, JSON.stringify(value));
-      } else if (value !== undefined && value !== null) {
-        formData.append(key, value);
-      }
-    });
-    // Ensure required fields are present
-    ["name", "category", "subcategory", "shortDescription", "fullTechnicalInfo", "imageUrl"].forEach(field => {
-      if (!formData.has(field)) {
-        formData.append(field, editingProduct[field] || "");
-      }
-    });
-    await apiRequestWithFiles("PUT", `/api/products/${editingProduct.id}`, formData);
-    setEditingProduct(null);
-    queryClient.invalidateQueries({ queryKey: ["/api/products"] });
   }
+
+  async function handleProductReorder(updates: { id: number; rank: number }[]) {
+    try {
+      setReorderLoading(true);
+      // Filter out invalid product IDs before sending
+      const validUpdates = updates.filter(u => typeof u.id === 'number' && !isNaN(u.id) && u.id !== null && u.id !== undefined);
+      const invalidUpdates = updates.filter(u => typeof u.id !== 'number' || isNaN(u.id) || u.id === null || u.id === undefined);
+      if (invalidUpdates.length > 0) {
+        console.warn('Filtered out invalid product IDs from reorder payload:', invalidUpdates);
+      }
+      const response = await fetch('/api/products/rank', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(validUpdates)
+      });
+      
+      if (response.ok) {
+        // Refresh products to get updated order
+        const updatedProducts = await fetch('/api/products').then(res => res.json());
+        setProducts(updatedProducts);
+        toast({
+          title: "Success",
+          description: "Product order updated successfully",
+        });
+      } else {
+        throw new Error('Failed to update product order');
+      }
+    } catch (error) {
+      console.error('Error updating product order:', error);
+      toast({
+        title: "Error",
+        description: "Failed to update product order",
+        variant: "destructive",
+      });
+    } finally {
+      setReorderLoading(false);
+    }
+  }
+
+  const handleEditJob = (job) => {
+    setEditingJob(job);
+    setForm({
+      title: job.title,
+      location: job.location,
+      requirements: job.requirements,
+      description: job.description,
+      type: job.type,
+      experience: job.experience,
+      salary: job.salary || '',
+    });
+  };
+
+  const handleUpdateJob = async (e) => {
+    e.preventDefault();
+    if (!editingJob) return;
+    const res = await fetch(`/api/jobs/${editingJob.id}`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    if (res.ok) {
+      setMessage('Job updated!');
+      setEditingJob(null);
+      setForm({ title: '', location: '', requirements: '', description: '', type: jobTypeOptions[0], experience: '', salary: '' });
+      fetch('/api/jobs').then(res => res.json()).then(setJobs);
+    } else {
+      setMessage('Failed to update job.');
+    }
+  };
+
+  const handleDeleteJob = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this job?')) return;
+    const res = await fetch(`/api/jobs/${id}`, { method: 'DELETE' });
+    if (res.ok) {
+      setMessage('Job deleted!');
+      fetch('/api/jobs').then(res => res.json()).then(setJobs);
+    } else {
+      setMessage('Failed to delete job.');
+    }
+  };
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    const res = await fetch('/api/jobs', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(form),
+    });
+    if (res.ok) {
+      setMessage('Job added!');
+      setForm({ title: '', location: '', requirements: '', description: '', type: jobTypeOptions[0], experience: '', salary: '' });
+      fetch('/api/jobs').then(res => res.json()).then(setJobs);
+    } else {
+      setMessage('Failed to add job.');
+    }
+  };
+
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
+  };
 
   if (!user) {
     return (
@@ -970,8 +1102,9 @@ export default function AdminDashboard() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
-              <SelectItem value="Testing Systems">Testing Systems</SelectItem>
+              <SelectItem value="Metrology Systems">Metrology Systems</SelectItem>
               <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
+              <SelectItem value="Metrology">Metrology</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -1405,7 +1538,8 @@ export default function AdminDashboard() {
           <aside className="w-56 bg-green-100 p-4 flex flex-col gap-2 border-r border-green-200">
             <button onClick={() => setActiveTab('dashboard')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'dashboard' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><BarChart3 className="inline" /> Dashboard</button>
             <button onClick={() => setActiveTab('products')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'products' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Package className="inline" /> Products</button>
-            <button onClick={() => window.location.href='/admin/category-management'} className={`flex items-center gap-2 px-4 py-2 rounded transition-all hover:bg-green-200 text-green-900`}><FolderOpen className="inline" /> Category Management</button>
+            <button onClick={() => setActiveTab('category-management')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'category-management' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><FolderOpen className="inline" /> Category Management</button>
+            <button onClick={() => setActiveTab('product-order')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'product-order' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><GripVertical className="inline" /> Product Order</button>
             <button onClick={() => setActiveTab('events')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'events' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Users className="inline" /> Events</button>
             <button onClick={() => setActiveTab('customers')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'customers' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Users className="inline" /> Customers</button>
             <button onClick={() => setActiveTab('quotes')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'quotes' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><FileText className="inline" /> Quotes</button>
@@ -1414,6 +1548,7 @@ export default function AdminDashboard() {
             <button onClick={() => setActiveTab('analytics')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'analytics' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Eye className="inline" /> Analytics</button>
             <button onClick={() => setActiveTab('jobs')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'jobs' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><Plus className="inline" /> Jobs</button>
             <button onClick={() => window.location.href='/admin/chatbot-summaries'} className={`flex items-center gap-2 px-4 py-2 rounded transition-all hover:bg-green-200 text-green-900`}><MessageSquare className="inline" /> Chatbot Summaries</button>
+            <button onClick={() => setActiveTab('gallery')} className={`flex items-center gap-2 px-4 py-2 rounded transition-all ${activeTab === 'gallery' ? 'bg-maroon-500 text-white' : 'hover:bg-green-200 text-green-900'}`}><GripVertical className="inline" /> Gallery</button>
           </aside>
           {/* Main Content */}
           <main className="flex-1 p-8">
@@ -1490,7 +1625,7 @@ export default function AdminDashboard() {
                           <div className="w-2 h-2 bg-maroon-500 rounded-full mt-2 mr-3"></div>
                           <div className="flex-1">
                             <p className="text-gray-900">
-                              New quote request from {quote.customerName}
+                              New quote request from {quote.name}
                             </p>
                             <p className="text-gray-500 text-sm">
                               {new Date(quote.createdAt).toLocaleDateString()}
@@ -1535,8 +1670,9 @@ export default function AdminDashboard() {
                         <SelectContent>
                           <SelectItem value="all">All Categories</SelectItem>
                           <SelectItem value="Calibration Systems">Calibration Systems</SelectItem>
-                          <SelectItem value="Testing Systems">Testing Systems</SelectItem>
+                          <SelectItem value="Metrology Systems">Metrology Systems</SelectItem>
                           <SelectItem value="Measuring Instruments">Measuring Instruments</SelectItem>
+                          <SelectItem value="Metrology">Metrology</SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
@@ -1662,6 +1798,20 @@ export default function AdminDashboard() {
                     )}
                   </div>
                 </div>
+              </TabsContent>
+
+              {/* Category Management Tab */}
+              <TabsContent value="category-management" className="space-y-6">
+                <CategoryManagement />
+              </TabsContent>
+
+              {/* Product Order Tab */}
+              <TabsContent value="product-order" className="space-y-6">
+                <ProductReorder 
+                  products={products}
+                  onReorder={handleProductReorder}
+                  loading={reorderLoading}
+                />
               </TabsContent>
 
               {/* Events Tab */}
@@ -1940,19 +2090,26 @@ export default function AdminDashboard() {
                           </tr>
                         </thead>
                         <tbody className="bg-white divide-y divide-gray-200">
-                          {quotes.map((quote) => (
+                          {quotes.map((quote) => {
+                            let products = [];
+                            try {
+                              products = typeof quote.products === "string" ? JSON.parse(quote.products) : (quote.products || []);
+                            } catch {
+                              products = [];
+                            }
+                            return (
                             <tr key={quote.id}>
                               <td className="px-6 py-4 whitespace-nowrap">
                                 <div>
-                                  <div className="text-sm font-medium text-gray-900">{quote.customerName}</div>
-                                  <div className="text-sm text-gray-500">{quote.customerEmail}</div>
-                                  <div className="text-sm text-gray-500">{quote.customerPhone}</div>
+                                    <div className="text-sm font-medium text-gray-900">{quote.name}</div>
+                                    <div className="text-sm text-gray-500">{quote.email}</div>
+                                    <div className="text-sm text-gray-500">{quote.phone}</div>
                                 </div>
                               </td>
                               <td className="px-6 py-4">
-                                <div className="text-sm text-gray-900">{quote.products.length} products</div>
+                                  <div className="text-sm text-gray-900">{products.length} products</div>
                                 <div className="text-sm text-gray-500">
-                                  {quote.products.map(p => p.name).join(", ").substring(0, 50)}...
+                                    {products.map(p => p.name).join(", ").substring(0, 50)}...
                                 </div>
                               </td>
                               <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
@@ -1979,7 +2136,8 @@ export default function AdminDashboard() {
                                 </Button>
                               </td>
                             </tr>
-                          ))}
+                            );
+                          })}
                         </tbody>
                       </table>
                     </div>
@@ -2246,6 +2404,14 @@ export default function AdminDashboard() {
                         />
                         <label htmlFor="featured" className="text-sm">Featured on homepage</label>
                       </div>
+                      <div>
+                        <label className="block text-sm font-medium mb-1">Location</label>
+                        <Input
+                          value={newCustomer.location || ""}
+                          onChange={(e) => setNewCustomer({ ...newCustomer, location: e.target.value })}
+                          placeholder="e.g., Mumbai, India"
+                        />
+                      </div>
                     </div>
                     <div className="flex justify-end space-x-2 mt-6">
                       <Button variant="outline" onClick={() => setShowAddCustomerDialog(false)}>
@@ -2347,6 +2513,14 @@ export default function AdminDashboard() {
                           />
                           <label htmlFor="editFeatured" className="text-sm">Featured on homepage</label>
                         </div>
+                        <div>
+                          <label className="block text-sm font-medium mb-1">Location</label>
+                          <Input
+                            value={editingCustomer.location || ""}
+                            onChange={(e) => setEditingCustomer({ ...editingCustomer, location: e.target.value })}
+                            placeholder="e.g., Mumbai, India"
+                          />
+                        </div>
                       </div>
                     )}
                     <div className="flex justify-end space-x-2 mt-6">
@@ -2393,30 +2567,57 @@ export default function AdminDashboard() {
                     </div>
                     <div>
                       <label className="block text-sm font-medium mb-1">Upload Catalog PDF</label>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 items-center">
                         <Input 
                           type="file"
                           accept=".pdf"
-                          onChange={(e) => {
+                          ref={catalogFileInputRef}
+                          onChange={async (e) => {
                             const file = e.target.files?.[0];
                             if (file) {
-                              // For demo purposes, using a placeholder URL
-                              // In production, you would upload to Replit Object Storage
-                              const fakeUrl = `https://storage.example.com/catalogs/${file.name}`;
-                              const fileSize = `${(file.size / (1024 * 1024)).toFixed(1)} MB`;
-                              setMainCatalog({ 
-                                ...mainCatalog, 
-                                pdfUrl: fakeUrl,
-                                fileSize: fileSize
-                              });
+                              setCatalogUploading(true);
+                              setCatalogUploadError("");
+                              const formData = new FormData();
+                              formData.append("pdf", file);
+                              try {
+                                const res = await fetch("/api/catalog/upload-pdf", {
+                                  method: "POST",
+                                  body: formData,
+                                });
+                                if (!res.ok) throw new Error("Upload failed");
+                                const data = await res.json();
+                                setMainCatalog((prev) => ({
+                                  ...prev,
+                                  pdfUrl: data.pdfUrl,
+                                  fileSize: data.fileSize,
+                                }));
                               toast({
-                                title: "File Selected",
-                                description: `${file.name} ready for upload`,
+                                  title: "Upload Success",
+                                  description: `${file.name} uploaded successfully`,
                               });
+                              } catch (err) {
+                                setCatalogUploadError("Failed to upload PDF. Please try again.");
+                                setMainCatalog((prev) => ({ ...prev, pdfUrl: "", fileSize: "" }));
+                              } finally {
+                                setCatalogUploading(false);
+                              }
                             }
                           }}
                           className="flex-1"
+                          disabled={catalogUploading}
                         />
+                        {catalogUploading && <span className="text-blue-600 text-xs">Uploading...</span>}
+                        {catalogUploadError && <span className="text-red-600 text-xs">{catalogUploadError}</span>}
+                        {mainCatalog.pdfUrl && mainCatalog.pdfUrl.startsWith("/uploads/catalogs/") && (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => window.open(mainCatalog.pdfUrl, '_blank')}
+                            className="ml-2"
+                          >
+                            <Download className="h-4 w-4 mr-1" /> View PDF
+                          </Button>
+                        )}
                       </div>
                       <p className="text-sm text-gray-500 mt-1">
                         Or enter URL manually below
@@ -2441,7 +2642,7 @@ export default function AdminDashboard() {
                     <Button 
                       onClick={handleUpdateCatalog}
                       className="bg-blue-600 hover:bg-blue-700 text-white"
-                      disabled={!mainCatalog.title || !mainCatalog.description || !mainCatalog.pdfUrl}
+                      disabled={!mainCatalog.title || !mainCatalog.description || !mainCatalog.pdfUrl || catalogUploading}
                     >
                       Update Catalog
                     </Button>
@@ -2504,12 +2705,227 @@ export default function AdminDashboard() {
 
               {/* Jobs Tab */}
               <TabsContent value="jobs">
-                <AdminJobs />
+                {editingJob && (
+                  <form className="bg-gray-100 p-4 rounded mb-8" onSubmit={handleUpdateJob}>
+                    <div className="mb-2">
+                      <input name="title" value={form.title} onChange={handleChange} required placeholder="Job Title" className="border p-2 w-full" />
+                    </div>
+                    <div className="mb-2">
+                      <input name="location" value={form.location} onChange={handleChange} required placeholder="Location" className="border p-2 w-full" />
+                    </div>
+                    <div className="mb-2">
+                      <input name="requirements" value={form.requirements} onChange={handleChange} required placeholder="Requirements" className="border p-2 w-full" />
+                    </div>
+                    <div className="mb-2">
+                      <textarea name="description" value={form.description} onChange={handleChange} required placeholder="Description" className="border p-2 w-full" />
+                    </div>
+                    <div className="mb-2">
+                      <select name="type" value={form.type} onChange={handleChange} required className="border p-2 w-full">
+                        {jobTypeOptions.map(option => (
+                          <option key={option} value={option}>{option}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="mb-2">
+                      <input name="experience" value={form.experience} onChange={handleChange} required placeholder="Experience" className="border p-2 w-full" />
+                    </div>
+                    <div className="mb-2">
+                      <input name="salary" value={form.salary} onChange={handleChange} placeholder="Salary (optional)" className="border p-2 w-full" />
+                    </div>
+                    <button className="bg-blue-600 text-white px-4 py-2 rounded mr-2" type="submit">Update Job</button>
+                    <button className="bg-gray-400 text-white px-4 py-2 rounded" type="button" onClick={() => setEditingJob(null)}>Cancel</button>
+                    {message && <div className="mt-2 text-green-600">{message}</div>}
+                  </form>
+                )}
+                <form className="bg-gray-50 p-4 rounded mb-8" onSubmit={handleSubmit}>
+                  <div className="mb-2">
+                    <input name="title" value={form.title} onChange={handleChange} required placeholder="Job Title" className="border p-2 w-full" />
+                  </div>
+                  <div className="mb-2">
+                    <input name="location" value={form.location} onChange={handleChange} required placeholder="Location" className="border p-2 w-full" />
+                  </div>
+                  <div className="mb-2">
+                    <input name="requirements" value={form.requirements} onChange={handleChange} required placeholder="Requirements" className="border p-2 w-full" />
+                  </div>
+                  <div className="mb-2">
+                    <textarea name="description" value={form.description} onChange={handleChange} required placeholder="Description" className="border p-2 w-full" />
+                  </div>
+                  <div className="mb-2">
+                    <select name="type" value={form.type} onChange={handleChange} required className="border p-2 w-full">
+                      {jobTypeOptions.map(option => (
+                        <option key={option} value={option}>{option}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div className="mb-2">
+                    <input name="experience" value={form.experience} onChange={handleChange} required placeholder="Experience" className="border p-2 w-full" />
+                  </div>
+                  <div className="mb-2">
+                    <input name="salary" value={form.salary} onChange={handleChange} placeholder="Salary (optional)" className="border p-2 w-full" />
+                  </div>
+                  <button className="bg-maroon-500 text-white px-4 py-2 rounded" type="submit">Add Job</button>
+                  {message && <div className="mt-2 text-green-600">{message}</div>}
+                </form>
+                <h3 className="text-xl font-semibold mb-2">Current Jobs</h3>
+                <ul className="mb-8">
+                  {jobs.map((job) => (
+                    <li key={job.id} className="mb-2 p-2 border rounded bg-white">
+                      <div className="font-bold">{job.title}</div>
+                      <div className="text-sm text-gray-600">{job.location} | {job.experience}</div>
+                      <div className="text-gray-700">{job.description}</div>
+                      <div className="flex gap-2 mt-2">
+                        <button className="text-blue-600 underline" onClick={() => handleEditJob(job)}>Edit</button>
+                        <button className="text-red-600 underline" onClick={() => handleDeleteJob(job.id)}>Delete</button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+                <h3 className="text-xl font-semibold mb-2">Job Applications</h3>
+                <table className="w-full bg-white rounded shadow">
+                  <thead>
+                    <tr>
+                      <th className="p-2 border">Name</th>
+                      <th className="p-2 border">Email</th>
+                      <th className="p-2 border">Location</th>
+                      <th className="p-2 border">Experience</th>
+                      <th className="p-2 border">Job</th>
+                      <th className="p-2 border">Resume</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {applications.map((app) => (
+                      <tr key={app.id}>
+                        <td className="p-2 border">{app.name}</td>
+                        <td className="p-2 border">{app.email}</td>
+                        <td className="p-2 border">{app.location}</td>
+                        <td className="p-2 border">{app.experience}</td>
+                        <td className="p-2 border">{app.jobTitle}</td>
+                        <td className="p-2 border">
+                          <a href={app.resumeUrl} target="_blank" rel="noopener noreferrer" className="text-maroon-500 underline">Download</a>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TabsContent>
+
+              {/* Gallery Tab */}
+              <TabsContent value="gallery">
+                <AdminGalleryManager />
               </TabsContent>
             </Tabs>
           </main>
         </div>
       </div>
+    </div>
+  );
+}
+
+function AdminGalleryManager() {
+  const API_URL = "/api/gallery";
+  const [premises, setPremises] = useState([]);
+  const [events, setEvents] = useState([]);
+  const [others, setOthers] = useState([]);
+  const [premisesLink, setPremisesLink] = useState("");
+  const [eventsLink, setEventsLink] = useState("");
+  const [othersLink, setOthersLink] = useState("");
+  const [loading, setLoading] = useState(false);
+
+  const fetchImages = async (section, setter) => {
+    const res = await fetch(`${API_URL}?section=${section}`);
+    const data = await res.json();
+    setter(data);
+  };
+  useEffect(() => {
+    fetchImages("premises", setPremises);
+    fetchImages("events", setEvents);
+    fetchImages("others", setOthers);
+  }, []);
+  const handleFileUpload = async (e, section, setter) => {
+    const files = Array.from(e.target.files || []);
+    setLoading(true);
+    for (const file of files) {
+      const formData = new FormData();
+      formData.append("section", section);
+      formData.append("image", file);
+      await fetch(API_URL, { method: "POST", body: formData });
+    }
+    await fetchImages(section, setter);
+    setLoading(false);
+  };
+  const handleAddLink = async (url, section, setter, clear) => {
+    if (!url.trim()) return;
+    setLoading(true);
+    await fetch(API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ section, url: url.trim() })
+    });
+    await fetchImages(section, setter);
+    clear();
+    setLoading(false);
+  };
+  const handleDelete = async (id, section, setter) => {
+    setLoading(true);
+    await fetch(`${API_URL}/${id}`, { method: "DELETE" });
+    await fetchImages(section, setter);
+    setLoading(false);
+  };
+  return (
+    <div className="py-6 px-2">
+      <h2 className="text-2xl font-bold mb-4 text-maroon-700">Gallery Manager</h2>
+      {/* Premises Section */}
+      <section className="mb-8">
+        <h3 className="text-lg font-semibold mb-2">Company Premises</h3>
+        <div className="flex gap-4 mb-2">
+          <input type="file" accept="image/*" multiple onChange={e => handleFileUpload(e, "premises", setPremises)} disabled={loading} />
+          <input type="url" value={premisesLink} onChange={e => setPremisesLink(e.target.value)} placeholder="Image URL" className="border p-2" />
+          <button onClick={() => handleAddLink(premisesLink, "premises", setPremises, () => setPremisesLink(""))} className="bg-maroon-500 text-white px-3 py-1 rounded" disabled={loading}>Add Link</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {premises.map((img) => (
+            <div key={img.id} className="relative group">
+              <img src={img.url} alt="Premises" className="rounded-lg shadow-md object-cover w-full h-40" />
+              <button onClick={() => handleDelete(img.id, "premises", setPremises)} className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition">×</button>
+            </div>
+          ))}
+        </div>
+      </section>
+      {/* Events Section */}
+      <section className="mb-8">
+        <h3 className="text-lg font-semibold mb-2">Events</h3>
+        <div className="flex gap-4 mb-2">
+          <input type="file" accept="image/*" multiple onChange={e => handleFileUpload(e, "events", setEvents)} disabled={loading} />
+          <input type="url" value={eventsLink} onChange={e => setEventsLink(e.target.value)} placeholder="Image URL" className="border p-2" />
+          <button onClick={() => handleAddLink(eventsLink, "events", setEvents, () => setEventsLink(""))} className="bg-maroon-500 text-white px-3 py-1 rounded" disabled={loading}>Add Link</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {events.map((img) => (
+            <div key={img.id} className="relative group">
+              <img src={img.url} alt="Event" className="rounded-lg shadow-md object-cover w-full h-40" />
+              <button onClick={() => handleDelete(img.id, "events", setEvents)} className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition">×</button>
+            </div>
+          ))}
+        </div>
+      </section>
+      {/* Others Section */}
+      <section className="mb-8">
+        <h3 className="text-lg font-semibold mb-2">Other Posts</h3>
+        <div className="flex gap-4 mb-2">
+          <input type="file" accept="image/*" multiple onChange={e => handleFileUpload(e, "others", setOthers)} disabled={loading} />
+          <input type="url" value={othersLink} onChange={e => setOthersLink(e.target.value)} placeholder="Image URL" className="border p-2" />
+          <button onClick={() => handleAddLink(othersLink, "others", setOthers, () => setOthersLink(""))} className="bg-maroon-500 text-white px-3 py-1 rounded" disabled={loading}>Add Link</button>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+          {others.map((img) => (
+            <div key={img.id} className="relative group">
+              <img src={img.url} alt="Other" className="rounded-lg shadow-md object-cover w-full h-40" />
+              <button onClick={() => handleDelete(img.id, "others", setOthers)} className="absolute top-2 right-2 bg-red-600 text-white rounded-full p-1 opacity-0 group-hover:opacity-100 transition">×</button>
+            </div>
+          ))}
+        </div>
+      </section>
+      {loading && <div className="fixed inset-0 bg-black bg-opacity-20 flex items-center justify-center z-50"><div className="bg-white p-4 rounded shadow">Processing...</div></div>}
     </div>
   );
 }

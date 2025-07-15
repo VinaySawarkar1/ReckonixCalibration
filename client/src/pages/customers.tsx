@@ -6,15 +6,77 @@ export default function Customers() {
   const { data: customers = [] } = useQuery({
     queryKey: ["/api/customers"],
   });
+  const customersTyped: any[] = customers as any[];
+
+  // DEMO: Add realistic customer entries if none exist (for demo/testing)
+  const demoCustomers = [
+    {
+      id: 'tata',
+      name: 'Tata Motors',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/4/4e/Tata_Motors_Logo.svg',
+      location: 'Mumbai, India',
+      industry: 'Automotive Manufacturing',
+      featured: true,
+    },
+    {
+      id: 'drdo',
+      name: 'DRDO',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/en/7/7e/DRDO_India_Logo.svg',
+      location: 'New Delhi, India',
+      industry: 'Aerospace & Defense',
+      featured: true,
+    },
+    {
+      id: 'cipla',
+      name: 'Cipla',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/2/2b/Cipla_logo.svg',
+      location: 'Mumbai, India',
+      industry: 'Pharmaceutical & Biotech',
+      featured: true,
+    },
+    {
+      id: 'isro',
+      name: 'ISRO',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6e/ISRO_Logo.svg',
+      location: 'Bengaluru, India',
+      industry: 'Aerospace & Defense',
+      featured: true,
+    },
+    {
+      id: 'reliance',
+      name: 'Reliance Industries',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/6/6b/Reliance_Industries_Logo.svg',
+      location: 'Mumbai, India',
+      industry: 'Oil & Gas',
+      featured: true,
+    },
+    {
+      id: 'iitb',
+      name: 'IIT Bombay',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/en/6/6e/IIT_Bombay_Logo.svg',
+      location: 'Mumbai, India',
+      industry: 'Research Institutions',
+      featured: false,
+    },
+    {
+      id: 'bosch',
+      name: 'Bosch',
+      logoUrl: 'https://upload.wikimedia.org/wikipedia/commons/0/0c/Bosch-logo.svg',
+      location: 'Bengaluru, India',
+      industry: 'Electronics & Semiconductors',
+      featured: false,
+    },
+  ];
+  const allCustomers = customersTyped.length > 0 ? customersTyped : demoCustomers;
 
   // Group customers by industry
-  const customersByIndustry = customers.reduce((acc, customer) => {
+  const customersByIndustry = allCustomers.reduce((acc: any, customer: any) => {
     if (!acc[customer.industry]) {
       acc[customer.industry] = [];
     }
     acc[customer.industry].push(customer);
     return acc;
-  }, {} as Record<string, typeof customers>);
+  }, {} as Record<string, any[]>);
 
   const industryIcons: Record<string, string> = {
     "Aerospace & Defense": "✈️",
@@ -37,7 +99,7 @@ export default function Customers() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero Section */}
-      <section className="relative bg-maroon-500 text-white py-16 overflow-hidden">
+      <section className="relative bg-[#800000] text-white py-16 overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g stroke="white" stroke-width="2" opacity="0.5">
@@ -121,15 +183,22 @@ export default function Customers() {
           </motion.div>
 
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
-            {customers.map((customer, index) => (
+            {allCustomers.map((customer: any, index: number) => (
               <motion.div
                 key={customer.id}
                 initial={{ opacity: 0, scale: 0.8 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ duration: 0.4, delay: index * 0.05 }}
+                className="flex flex-col items-center"
               >
                 <CustomerLogo name={customer.name} logoUrl={customer.logoUrl} />
+                <div className="mt-2 text-center">
+                  <div className="text-sm font-semibold text-gray-900">{customer.name}</div>
+                  {customer.location && (
+                    <div className="text-xs text-gray-500">{customer.location}</div>
+                  )}
+                </div>
               </motion.div>
             ))}
           </div>

@@ -17,6 +17,8 @@ import { Link } from "wouter";
 import { useEffect, useState } from "react";
 import { apiRequest } from "@/lib/queryClient";
 import type { Product, Customer, CompanyEvent } from "../../../shared/schema";
+import { useCategories } from "@/context/category-context";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 export default function Home() {
   const { data: products = [] } = useQuery<Product[]>({
@@ -31,51 +33,40 @@ export default function Home() {
     queryKey: ["/api/customers"],
   });
 
+  const { categories, loading } = useCategories();
+  const [activeTab, setActiveTab] = useState("");
+
   // Record website view
   useEffect(() => {
     apiRequest("POST", "/api/analytics/website-views");
   }, []);
 
+  // Set default active tab when categories load
+  useEffect(() => {
+    if (categories.length > 0 && !activeTab) {
+      setActiveTab(categories[0].name);
+    }
+  }, [categories, activeTab]);
+
   const safeProducts = Array.isArray(products) ? products : [];
-  const subcategories: Record<string, string[]> = {
-    "Calibration Systems": [
-      "Pressure Calibration",
-      "Temperature Calibration",
-      "Flow Calibration",
-      "Electrical Calibration",
-      "Mechanical Calibration",
-      "Dimensional Calibration",
-      "Mass and Weight Calibration",
-      "Thermal Calibration"
-    ],
-    "Measuring Instruments": [
-      "Dimensional Measurement Systems",
-      "Optical Measurement Systems",
-      "Coordinate Measurement Systems",
-      "Roughness Measurement Systems",
-      "Profile Measurement Systems"
-    ],
-    "Testing Systems": [
-      "Universal Testing Machines",
-      "Dynamic and Fatigue Testing Machines",
-      "Torsion Testing Machines",
-      "Single Purpose Test Machines",
-      "Customized Testing Solutions"
-    ]
-  };
+  // Remove hardcoded subcategories. Use fetched categories for category sections.
+  // Example usage: categories.map(category => ...)
 
   const getProductsByCategory = (category: string) => {
     const categoryProducts = safeProducts.filter((p: Product) => p.category === category);
     
-    // Get up to 4 products for the category
-    // Prefer homeFeatured products first, then take the first available products
-    const featuredProducts = categoryProducts.filter(p => p.homeFeatured);
-    const regularProducts = categoryProducts.filter(p => !p.homeFeatured);
-    
-    // Combine featured and regular products, limiting to 4 total
-    const selectedProducts = [...featuredProducts, ...regularProducts].slice(0, 4);
+    // Products are already sorted by rank from the backend
+    // Get up to 6 products for the category (more for better showcase)
+    const selectedProducts = categoryProducts.slice(0, 6);
     
     return selectedProducts;
+  };
+
+  // Helper to get up to 4 featured products for a category
+  const getFeaturedProductsByCategory = (category: string) => {
+    return safeProducts
+      .filter((p: Product) => p.category === category && p.homeFeatured)
+      .slice(0, 4);
   };
 
   const featuredCustomers = customers.filter((customer: Customer) => customer.featured);
@@ -85,22 +76,22 @@ export default function Home() {
       icon: Medal,
       title: "Quality",
       description:
-        "ISO certified manufacturing with rigorous quality control processes",
+        "Manufacturing with rigorous quality control processes and high accuracy standards",
     },
     {
       icon: Lightbulb,
       title: "Innovation",
-      description: "Cutting-edge technology and continuous R&D investment",
+      description: "Cutting-edge technology and continuous product development",
     },
     {
       icon: Globe,
-      title: "Global Reach",
-      description: "Serving customers across 25+ countries with local support",
+      title: "Pan India Service",
+      description: "Serving customers across India with comprehensive support",
     },
     {
       icon: Headphones,
       title: "Fast Support",
-      description: "24/7 technical support and rapid response times",
+      description: "93% response rate with dedicated technical support",
     },
   ];
 
@@ -109,20 +100,34 @@ export default function Home() {
     setNewsOpen(true);
   }, []);
 
+  // Sort categories for featured products section
+  const categoryOrder = [
+    'Calibration Systems',
+    'Metrology Systems',
+    'Measuring Instruments',
+  ];
+  const sortedCategories = [...categories].sort((a, b) => {
+    const aIndex = categoryOrder.indexOf(a.name);
+    const bIndex = categoryOrder.indexOf(b.name);
+    if (aIndex === -1 && bIndex === -1) return a.name.localeCompare(b.name);
+    if (aIndex === -1) return 1;
+    if (bIndex === -1) return -1;
+    return aIndex - bIndex;
+  });
+
   return (
     <div className="min-h-screen">
       {/* Hero Section */}
-      <section className="relative bg-primary text-white py-20 overflow-hidden">
+      <section className="relative bg-white text-[#800000] py-6 overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g stroke="white" stroke-width="2" opacity="0.5">
+          <g stroke="#e6bfc0" stroke-width="2" opacity="0.5">
             <polyline points="0,100 300,100 400,200 700,200" />
             <polyline points="200,0 500,0 600,100 900,100" />
             <polyline points="400,200 700,200 800,300 1100,300" />
             <polyline points="600,100 900,100 1000,200 1300,200" />
             <polyline points="800,300 1100,300 1200,400 1440,400" />
             <polyline points="1000,200 1300,200 1400,300 1440,300" />
-            {/* Additional similar structures for density */}
             <polyline points="100,50 400,50 500,150 800,150" />
             <polyline points="300,150 600,150 700,250 1000,250" />
             <polyline points="500,250 800,250 900,350 1200,350" />
@@ -134,68 +139,23 @@ export default function Home() {
             <polyline points="600,350 900,350 1000,400 1200,400" />
           </g>
         </svg>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-            <motion.div
-              className="text-left"
-              initial={{ opacity: 0, y: 50 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.8 }}
-            >
-              <h2 className="text-xl md:text-3xl font-bold mb-4 leading-tight heading-white">
-                We are manufacturers of Calibration Systems, Testing Systems, and Measuring Systems
-              </h2>
-              <p className="text-base md:text-lg mb-6 text-gray-100">
-                Precision engineering meets cutting-edge technology. Trust
-                Reckonix for all your calibration, testing, and measurement
-                needs.
-              </p>
-              <div className="flex flex-col sm:flex-row gap-4 justify-start">
-                <Button
-                  asChild
-                  className="bg-yellow-500 text-black px-8 py-3 hover:bg-yellow-400 transform hover:scale-105 transition-all"
-                >
-                  <Link href="/products">View Products</Link>
-                </Button>
-                <Button
-                  variant="outline"
-                  className="border-2 border-white bg-white text-primary px-8 py-3 hover:bg-primary hover:text-white transition-all"
-                  onClick={() => {
-                    const catalogSection = document.getElementById('download-catalog');
-                    catalogSection?.scrollIntoView({ behavior: 'smooth' });
-                  }}
-                >
-                  <Download className="mr-2 h-4 w-4" />
-                  Download Catalog
-                </Button>
-              </div>
-            </motion.div>
-            <motion.div
-              className="relative"
-              initial={{ opacity: 0, scale: 0.8 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ duration: 0.8, delay: 0.2 }}
-            >
-              <video
-                src="https://cdn.pixabay.com/video/2016/07/23/3975-176000797_medium.mp4"
-                autoPlay
-                loop
-                muted
-                playsInline
-                className="rounded-xl shadow-2xl w-full h-auto transform hover:scale-[1.02] transition-all duration-700"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent rounded-xl"></div>
-            </motion.div>
-          </div>
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <motion.div 
+            className="text-center"
+            initial={{ opacity: 0, y: 30 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.8 }}
+          >
+            <h1 className="font-cinzel text-3xl md:text-4xl font-bold mb-6 text-[#800000]">Get In Touch</h1>
+            <p className="text-xl text-[#800000] max-w-3xl mx-auto">
+              Ready to discuss your calibration and testing needs? We're here to help you find the perfect solution.
+            </p>
+          </motion.div>
         </div>
-        {/* Diagonal Divider */}
-        <svg className="absolute bottom-0 left-0 w-full h-16" viewBox="0 0 100 16" preserveAspectRatio="none">
-          <polygon fill="#EAFAEA" points="0,16 100,0 100,16" />
-        </svg>
       </section>
 
       {/* About Reckonix Section */}
-      <section className="py-6 bg-gray-50">
+      <section className="py-6 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <motion.div
@@ -205,9 +165,9 @@ export default function Home() {
               transition={{ duration: 0.6 }}
             >
               <img
-                src="https://images.unsplash.com/photo-1581094794329-c8112a89af12?ixlib=rb-4.0.3&auto=format&fit=crop&w=800&h=600"
+                src="https://images.unsplash.com/photo-1606857521015-7f9fcf423740?q=80&w=870&auto=format&fit=crop&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
                 alt="Advanced industrial precision equipment"
-                className="rounded-xl shadow-lg w-full max-w-xs h-auto mx-auto"
+                className="rounded-xl shadow-lg w-full max-w-md h-auto mx-auto"
               />
             </motion.div>
             <motion.div
@@ -220,38 +180,22 @@ export default function Home() {
                 About Reckonix
               </h2>
               <p className="text-gray-600 text-base mb-4 leading-relaxed">
-                With over two decades of excellence in precision engineering,
-                Reckonix stands as a global leader in manufacturing
-                state-of-the-art calibration systems, testing equipment, and
-                measuring instruments.
+                Reckonix is a leading manufacturer and supplier of Calibration Systems, Testing Systems, and Measuring Systems. With a strong commitment to quality and innovation, we have established ourselves as a trusted name in the industry. Our products are designed to meet the highest standards of accuracy and reliability, serving a wide range of industries including automotive, aerospace, pharmaceuticals, and manufacturing.
               </p>
               <p className="text-gray-600 text-base mb-4 leading-relaxed">
-                Our commitment to innovation and quality has earned us the trust
-                of industries worldwide. From automotive to aerospace,
-                pharmaceuticals to manufacturing, we deliver solutions that
-                ensure accuracy, reliability, and compliance.
+                Our state-of-the-art manufacturing facility is equipped with advanced technology and a skilled workforce, enabling us to deliver customized solutions to our clients with a dedicated team providing 24/7 support to our customers.
               </p>
-              <div className="flex flex-wrap gap-2">
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-gray-900 rounded-full mr-2"></div>
-                  <span className="font-semibold text-sm">ISO 9001:2015 Certified</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-gray-900 rounded-full mr-2"></div>
-                  <span className="font-semibold text-sm">Global Presence</span>
-                </div>
-                <div className="flex items-center">
-                  <div className="w-2 h-2 bg-gray-900 rounded-full mr-2"></div>
-                  <span className="font-semibold text-sm">24/7 Support</span>
-                </div>
-              </div>
+              <p className="text-gray-600 text-base mb-4 leading-relaxed">
+                At Reckonix, we believe in continuous improvement and strive to exceed customer expectations through our commitment to excellence, integrity, and customer satisfaction. Our mission is to deliver world-class testing, measuring, and calibration systems, ensuring a seamless customer experience and building a strong global presence. We are proud to partner with industry leaders and to be recognized for our innovation, reliability, and service excellence.
+              </p>
+             
             </motion.div>
           </div>
         </div>
       </section>
 
       {/* Featured Products Section */}
-      <section className="py-16">
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="text-center mb-12"
@@ -260,38 +204,33 @@ export default function Home() {
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
           >
-            <h2 className="text-xl font-semibold mb-2 text-center">
-              Our Product Categories
+            <h2 className="text-3xl font-bold text-gray-900 mb-4">
+              Our Featured Products
             </h2>
-            <p className="text-xl text-gray-600">
-              Precision instruments designed for excellence across industries
+            <p className="text-lg text-gray-600">
+              Discover our precision instruments and calibration systems
             </p>
           </motion.div>
-
-          {/* One row per main category, each with one product per subcategory */}
-          {["Calibration Systems", "Testing Systems", "Measuring Instruments"].map((category, catIdx) => (
-            <motion.div
-              key={category}
-              className="mb-16"
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6, delay: 0.1 * catIdx }}
-            >
-              <div className="flex justify-between items-center mb-8">
-                <h3 className="text-2xl font-bold text-gray-900">{category}</h3>
+          <div className="space-y-12">
+            {sortedCategories.map((category) => {
+              const featuredProducts = getFeaturedProductsByCategory(category.name);
+              if (featuredProducts.length === 0) return null;
+              return (
+                <div key={category.name}>
+                  <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-2xl font-bold text-gray-900">{category.name}</h3>
                 <Button
                   variant="ghost"
                   asChild
                   className="text-gray-900 hover:text-gray-700"
                 >
-                  <Link href={`/products?category=${encodeURIComponent(category)}`}>
+                      <Link href={`/products?category=${encodeURIComponent(category.name)}`}>
                     View All →
                   </Link>
                 </Button>
               </div>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-                {getProductsByCategory(category).map((product, index) => (
+                    {featuredProducts.map((product, index) => (
                   <motion.div
                     key={product.id}
                     initial={{ opacity: 0, y: 20 }}
@@ -303,13 +242,15 @@ export default function Home() {
                   </motion.div>
                 ))}
               </div>
-            </motion.div>
-          ))}
+                </div>
+              );
+            })}
+          </div>
         </div>
       </section>
 
       {/* Trusted By Section */}
-      <section className="py-16 bg-gray-100 overflow-hidden">
+      <section className="py-16 bg-white overflow-hidden">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="text-center mb-12"
@@ -337,7 +278,7 @@ export default function Home() {
       </section>
 
       {/* Recent Events Section */}
-      <section className="py-16 bg-gray-50">
+      <section className="py-16 bg-white">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <motion.div
             className="text-center mb-12"
@@ -366,7 +307,13 @@ export default function Home() {
               >
                 <div className="relative h-48 overflow-hidden">
                   <img
-                    src={event.imageUrl}
+                    src={
+                      index === 0
+                        ? "https://images.unsplash.com/photo-1644637722708-74f8cdd75ce9?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8MTl8fGV4cG98ZW58MHx8MHx8fDA%3D"
+                        : index === 1
+                        ? "https://images.unsplash.com/photo-1632383380175-812d44ec112b?w=500&auto=format&fit=crop&q=60&ixlib=rb-4.1.0&ixid=M3wxMjA3fDB8MHxzZWFyY2h8Mnx8ZXhwb3xlbnwwfHwwfHx8MA%3D%3D"
+                        : event.imageUrl
+                    }
                     alt={event.title}
                     className="w-full h-full object-cover transform hover:scale-105 transition-transform duration-300"
                   />
@@ -436,7 +383,11 @@ export default function Home() {
                 viewport={{ once: true }}
                 transition={{ duration: 0.6, delay: index * 0.1 }}
               >
-                <IconCard {...item} />
+                <IconCard
+                  icon={item.icon}
+                  title={item.title}
+                  description={item.description}
+                />
               </motion.div>
             ))}
           </div>
@@ -444,7 +395,7 @@ export default function Home() {
       </section>
 
       {/* Company Stats Section */}
-      <section className="relative py-16 bg-primary text-white overflow-hidden">
+      <section className="relative py-16 bg-[#800000] text-white overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g stroke="white" stroke-width="2" opacity="0.5">
@@ -544,7 +495,7 @@ export default function Home() {
       </section>
 
       {/* Download Catalog Section */}
-      <section id="download-catalog" className="py-16 bg-gray-50">
+      <section id="download-catalog" className="py-16 bg-white">
         <div className="max-w-4xl mx-auto text-center px-4 sm:px-6 lg:px-8">
           <motion.div
             initial={{ opacity: 0, y: 30 }}
@@ -572,7 +523,7 @@ export default function Home() {
               </div>
 
               <Button 
-                className="bg-maroon-500 text-white px-8 py-3 hover:bg-maroon-600 transition-all transform hover:scale-105 w-full"
+                className="bg-[#800000] text-white px-8 py-3 hover:bg-[#6b0000] transition-all transform hover:scale-105 w-full"
                 onClick={async () => {
                   try {
                     const response = await fetch('/api/catalog/main-catalog');
@@ -598,6 +549,12 @@ export default function Home() {
           </motion.div>
         </div>
       </section>
+      {/* Highly Visible Section Divider */}
+      <div className="w-full -mb-1">
+        <svg viewBox="0 0 1440 180" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-24 drop-shadow-2xl">
+          <path d="M0,90 Q720,200 1440,90 L1440,180 L0,180 Z" fill="#800000" />
+        </svg>
+      </div>
     </div>
   );
 }

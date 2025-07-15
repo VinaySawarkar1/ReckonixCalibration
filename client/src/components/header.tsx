@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Link, useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
-import { Menu, X, ShoppingCart, Home as HomeIcon, Box, Info, Mail, Users } from "lucide-react";
+import { Menu, X, ShoppingCart, Home as HomeIcon, Box, Info, Mail, Users, Building } from "lucide-react";
 import { useCart } from "../context/cart-context";
 import { motion, AnimatePresence } from "framer-motion";
 import TopNavbar from "./top-navbar";

@@ -163,7 +163,7 @@ export default function CategoryManagement() {
               Add Category
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[500px]">
+          <DialogContent className="sm:max-w-[500px] bg-white rounded">
             <DialogHeader>
               <DialogTitle>
                 {editingCategory ? 'Edit Category' : 'Add New Category'}
@@ -237,8 +237,8 @@ export default function CategoryManagement() {
                 <Label className="text-sm font-medium">Subcategories:</Label>
                 <div className="flex flex-wrap gap-1">
                   {category.subcategories.map((subcategory, index) => (
-                    <Badge key={index} variant="secondary">
-                      {subcategory}
+                    <Badge key={typeof subcategory === 'string' ? subcategory : subcategory.id || index} variant="secondary">
+                      {typeof subcategory === 'string' ? subcategory : subcategory.name}
                     </Badge>
                   ))}
                 </div>

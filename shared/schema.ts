@@ -44,7 +44,8 @@ export const productSchema = z.object({
   }).optional(),
   views: z.number().default(0),
   createdAt: z.date().default(() => new Date()),
-  homeFeatured: z.boolean().default(false)
+  homeFeatured: z.boolean().default(false),
+  rank: z.number().default(0)
 });
 
 export const insertProductSchema = z.object({
@@ -72,37 +73,34 @@ export const insertProductSchema = z.object({
     warranty: z.string().optional(),
     compliance: z.array(z.string()).default([])
   }).optional(),
-  homeFeatured: z.boolean().default(false)
+  homeFeatured: z.boolean().default(false),
+  rank: z.number().default(0)
+});
+
+export const updateProductSchema = insertProductSchema.partial().extend({
+  imageUrl: z.string().optional(),
 });
 
 // Quote Request Schema
 export const quoteRequestSchema = z.object({
   id: z.number(),
-  customerName: z.string(),
-  customerEmail: z.string().email(),
-  customerPhone: z.string(),
-  customerLocation: z.string().optional(),
-  products: z.array(z.object({
-    productId: z.number(),
-    name: z.string(),
-    quantity: z.number().positive()
-  })),
-  message: z.string().optional(),
+  name: z.string(),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  company: z.string().optional(),
+  message: z.string(),
+  products: z.string().optional(), // JSON string
   status: z.enum(['New', 'Contacted', 'Closed']).default('New'),
   createdAt: z.date().default(() => new Date())
 });
 
 export const insertQuoteRequestSchema = z.object({
-  customerName: z.string().min(2).max(100),
-  customerEmail: z.string().email(),
-  customerPhone: z.string().min(5).max(20),
-  customerLocation: z.string().optional(),
-  products: z.array(z.object({
-    productId: z.number(),
-    name: z.string(),
-    quantity: z.number().positive()
-  })).min(1),
-  message: z.string().optional()
+  name: z.string().min(2).max(100),
+  email: z.string().email(),
+  phone: z.string().optional(),
+  company: z.string().optional(),
+  message: z.string().min(1),
+  products: z.string().optional(), // JSON string
 });
 
 // Contact Message Schema
@@ -110,7 +108,7 @@ export const contactMessageSchema = z.object({
   id: z.number(),
   name: z.string(),
   email: z.string().email(),
-  phone: z.string().optional(),
+  subject: z.string().min(2).max(200),
   message: z.string(),
   replied: z.boolean().default(false),
   createdAt: z.date().default(() => new Date())
@@ -120,6 +118,7 @@ export const insertContactMessageSchema = z.object({
   name: z.string().min(2).max(100),
   email: z.string().email(),
   phone: z.string().optional(),
+  subject: z.string().min(2).max(200),
   message: z.string().min(10).max(2000)
 });
 
@@ -208,9 +207,12 @@ export const jobSchema = z.object({
 
 export const insertJobSchema = z.object({
   title: z.string().min(1).max(200),
+  description: z.string().min(1).max(2000),
+  requirements: z.string().min(1).max(1000),
   location: z.string().min(1).max(100),
+  type: z.enum(['Full Time', 'Part Time', 'Contract', 'Internship', 'Temporary']),
   experience: z.string().min(1).max(100),
-  description: z.string().min(1).max(2000)
+  salary: z.string().optional(),
 });
 
 // Job Application Schema

@@ -64,10 +64,10 @@ export default function Cart() {
     }
 
     const quoteData = {
-      customerName: customerInfo.name,
-      customerEmail: customerInfo.email,
-      customerPhone: customerInfo.phone,
-      customerLocation: customerInfo.company,
+      name: customerInfo.name,
+      email: customerInfo.email,
+      phone: customerInfo.phone,
+      company: customerInfo.company,
       message: customerInfo.message,
       products: cartItems.map((item) => ({
         productId: item.product.id,
@@ -98,7 +98,7 @@ export default function Cart() {
             <p className="text-gray-600 mb-8">
               Add some products to request a quote
             </p>
-            <Button asChild className="bg-blue-600 hover:bg-blue-700">
+            <Button asChild className="bg-[#800000] text-white hover:bg-[#6b0000]">
               <Link href="/products">Browse Products</Link>
             </Button>
           </motion.div>
@@ -287,7 +287,7 @@ export default function Cart() {
 
                     <Button
                       type="submit"
-                      className="w-full bg-blue-600 hover:bg-blue-700"
+                      className="w-full bg-[#800000] text-white hover:bg-[#6b0000]"
                       disabled={submitQuote.isPending}
                     >
                       <Send className="h-4 w-4 mr-2" />

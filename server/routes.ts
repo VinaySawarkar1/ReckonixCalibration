@@ -1,6 +1,6 @@
 import type { Express, Request, Response } from "express";
 import { createServer, type Server } from "http";
-import { storage } from "./storage";
+import { PrismaClient } from '@prisma/client';
 import { 
   insertProductSchema, 
   insertQuoteRequestSchema, 
@@ -10,16 +10,28 @@ import {
   insertCustomerSchema,
   loginSchema,
   insertJobSchema,
-  insertJobApplicationSchema
+  insertJobApplicationSchema,
+  updateProductSchema
 } from "@shared/schema";
 import multer from 'multer';
 import path from 'path';
 import fs from 'fs';
 import { fileURLToPath } from 'url';
 import express from "express";
-import { addComplaint, addChatbotSummary, getChatbotSummaries, getAllCategories, createCategory, updateCategory, deleteCategory } from "./storage";
 import { v4 as uuidv4 } from "uuid";
 import * as XLSX from "xlsx";
+import nodemailer from 'nodemailer';
+import twilio from 'twilio';
+
+// Initialize Prisma client
+const prisma = new PrismaClient();
+
+// @ts-ignore: Suppress nodemailer type error if types are missing
+declare module 'nodemailer' {
+  interface SentMessageInfo {
+    messageId: string;
+  }
+}
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -33,6 +45,36 @@ function getSessionType(session: any) {
   if (session.complaint) return "complaint";
   // Add more types as needed
   return "inquiry";
+}
+
+// Replace transporter config with provided credentials
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'vinaysawarkar53@gmail.com',
+    pass: 'ezkxbkrtmmdodfoh',
+  },
+});
+
+const twilioClient = twilio(process.env.TWILIO_SID, process.env.TWILIO_AUTH_TOKEN);
+const whatsappFrom = '+14155238886'; // Twilio sandbox or your WhatsApp number
+const whatsappTo = '+919175240313'; // Admin WhatsApp number
+
+async function sendAdminEmail(subject: string, body: string) {
+  await transporter.sendMail({
+    from: 'vinaysawarkar53@gmail.com',
+    to: 'vinaysawarkar53@gmail.com',
+    subject,
+    text: body,
+  });
+}
+
+async function sendAdminWhatsApp(body: string) {
+  await twilioClient.messages.create({
+    from: `whatsapp:${whatsappFrom}`,
+    to: `whatsapp:${whatsappTo}`,
+    body,
+  });
 }
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -75,7 +117,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const { username, password } = loginSchema.parse(req.body);
       
-      const user = await storage.getUserByUsername(username);
+      const user = await prisma.user.findUnique({ where: { username } });
       if (!user || user.password !== password) {
         return res.status(401).json({ message: "Invalid credentials" });
       }
@@ -94,7 +136,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/products", async (req: Request, res: Response) => {
     try {
       const category = req.query.category as string | undefined;
-      let products = await storage.getAllProducts(category);
+      let products = await prisma.product.findMany({
+        where: category ? { category: category } : undefined,
+        include: { images: true }
+      });
       res.json(products);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch products" });
@@ -108,13 +153,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid product ID" });
       }
 
-      const product = await storage.getProduct(id);
+      const product = await prisma.product.findUnique({
+        where: { id },
+        include: { images: true }
+      });
       if (!product) {
         return res.status(404).json({ message: "Product not found" });
       }
 
       // Increment view count
-      await storage.incrementProductViews(id);
+      await prisma.product.update({
+        where: { id },
+        data: { views: { increment: 1 } },
+      });
       
       res.json(product);
     } catch (error) {
@@ -122,114 +173,140 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/products", productUpload.array('images', 10), async (req: Request, res: Response) => {
+  // Update product image upload setup for multiple images
+  const productImageStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, path.join(__dirname, "../uploads/products/"));
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + "-" + file.originalname.replace(/\s+/g, "_"));
+    },
+  });
+  const productImageUpload = multer({ storage: productImageStorage });
+
+  // Add product with multiple images
+  app.post("/api/products", productImageUpload.array("images", 10), async (req, res) => {
     try {
-      // In production, verify JWT token here
-      
-      // Handle uploaded files
-      const uploadedFiles = req.files as Express.Multer.File[];
-      const imageUrls: string[] = [];
-      
-      if (uploadedFiles && uploadedFiles.length > 0) {
-        // Generate URLs for uploaded images
-        imageUrls.push(...uploadedFiles.map(file => `/uploads/products/${file.filename}`));
-      }
-      
-      // Parse product data from form fields
-      const productData = {
-        ...req.body,
-        imageUrl: imageUrls[0] || req.body.imageUrl || "", // First image as main image
-        imageGallery: imageUrls.length > 0 ? imageUrls : (req.body.imageGallery ? JSON.parse(req.body.imageGallery) : [])
-      };
-      // Convert homeFeatured to boolean if present
-      if (typeof productData.homeFeatured === 'string') {
-        productData.homeFeatured = productData.homeFeatured === 'true';
-      }
-      // Parse JSON string fields to arrays/objects
-      const parseIfJson = (val) => {
-        if (typeof val === "string") {
-          try {
-            return JSON.parse(val);
-          } catch {
-            return val;
-          }
-        }
-        return val;
-      };
-      ["specifications", "featuresBenefits", "applications", "certifications", "technicalDetails"].forEach((field) => {
-        if (productData[field]) {
-          productData[field] = parseIfJson(productData[field]);
-        }
+      const data = req.body;
+      // Create product first
+      const product = await prisma.product.create({
+        data: {
+          name: data.name,
+          category: data.category,
+          subcategory: data.subcategory,
+          shortDescription: data.shortDescription,
+          fullTechnicalInfo: data.fullTechnicalInfo,
+          specifications: data.specifications,
+          featuresBenefits: data.featuresBenefits,
+          applications: data.applications,
+          certifications: data.certifications,
+          technicalDetails: data.technicalDetails,
+          catalogPdfUrl: data.catalogPdfUrl,
+          datasheetPdfUrl: data.datasheetPdfUrl,
+          homeFeatured: data.homeFeatured === "true" || data.homeFeatured === true,
+        },
       });
-      
-      const validatedData = insertProductSchema.parse(productData);
-      const product = await storage.createProduct(validatedData);
-      res.status(201).json(product);
-    } catch (error) {
-      console.error("Product creation error:", error);
-      res.status(400).json({ 
-        message: "Invalid product data",
-        details: error instanceof Error ? error.message : "Unknown error"
+      // Save images if any
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          await prisma.productImage.create({
+            data: {
+              productId: product.id,
+              url: `/uploads/products/${file.filename}`,
+            },
+          });
+        }
+      }
+      // Return product with images
+      const productWithImages = await prisma.product.findUnique({
+        where: { id: product.id },
+        include: { images: true },
       });
+      res.status(201).json(productWithImages);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to add product", error: err.message });
     }
   });
 
-  app.put("/api/products/:id", productUpload.array('images', 10), async (req: Request, res: Response) => {
+  // Edit product with multiple images
+  app.put("/api/products/:id", productImageUpload.array("images", 10), async (req, res) => {
     try {
-      // In production, verify JWT token here
-      const id = parseInt(req.params.id);
-      if (isNaN(id)) {
-        return res.status(400).json({ message: "Invalid product ID" });
-      }
-
-      // Handle uploaded files
-      const uploadedFiles = req.files as Express.Multer.File[];
-      const imageUrls: string[] = [];
+      const id = Number(req.params.id);
+      const data = req.body;
       
-      if (uploadedFiles && uploadedFiles.length > 0) {
-        // Generate URLs for uploaded images
-        imageUrls.push(...uploadedFiles.map(file => `/uploads/products/${file.filename}`));
-      }
-      
-      // Parse product data from form fields
-      const productData = {
-        ...req.body,
-        imageUrl: imageUrls[0] || req.body.imageUrl || "", // First image as main image
-        imageGallery: imageUrls.length > 0 ? imageUrls : (req.body.imageGallery ? JSON.parse(req.body.imageGallery) : [])
-      };
-      // Convert homeFeatured to boolean if present
-      if (typeof productData.homeFeatured === 'string') {
-        productData.homeFeatured = productData.homeFeatured === 'true';
-      }
-      // Parse JSON string fields to arrays/objects
-      const parseIfJson = (val) => {
-        if (typeof val === "string") {
+      // Handle existing images - remove images that are no longer in the list
+      if (data.existingImages) {
+        let existingImageUrls: string[] = [];
+        if (Array.isArray(data.existingImages)) {
+          existingImageUrls = data.existingImages;
+        } else if (typeof data.existingImages === 'string') {
           try {
-            return JSON.parse(val);
+            existingImageUrls = JSON.parse(data.existingImages);
           } catch {
-            return val;
+            existingImageUrls = [];
           }
         }
-        return val;
-      };
-      ["specifications", "featuresBenefits", "applications", "certifications", "technicalDetails"].forEach((field) => {
-        if (productData[field]) {
-          productData[field] = parseIfJson(productData[field]);
+        // Get current images for this product
+        const currentImages = await prisma.productImage.findMany({
+          where: { productId: id }
+        });
+        
+        // Remove images that are no longer in the existingImages list
+        for (const currentImage of currentImages) {
+          if (!existingImageUrls.includes(currentImage.url)) {
+            await prisma.productImage.delete({
+              where: { id: currentImage.id }
+            });
+          }
         }
-      });
-
-      const validatedData = insertProductSchema.partial().parse(productData);
-      const product = await storage.updateProduct(id, validatedData);
-      
-      if (!product) {
-        return res.status(404).json({ message: "Product not found" });
+      } else {
+        // If no existingImages provided, remove all current images
+        await prisma.productImage.deleteMany({
+          where: { productId: id }
+        });
       }
-
-      res.json(product);
-    } catch (error) {
-      console.error('Product update error:', error);
-      console.error('Product data received:', req.body);
-      res.status(400).json({ message: "Invalid product data" });
+      
+      // Update product fields
+      const product = await prisma.product.update({
+        where: { id },
+        data: {
+          name: data.name,
+          category: data.category,
+          subcategory: data.subcategory,
+          shortDescription: data.shortDescription,
+          fullTechnicalInfo: data.fullTechnicalInfo,
+          specifications: data.specifications,
+          featuresBenefits: data.featuresBenefits,
+          applications: data.applications,
+          certifications: data.certifications,
+          technicalDetails: data.technicalDetails,
+          catalogPdfUrl: data.catalogPdfUrl,
+          datasheetPdfUrl: data.datasheetPdfUrl,
+          homeFeatured: data.homeFeatured === "true" || data.homeFeatured === true,
+        },
+      });
+      
+      // Save new images if any
+      if (req.files && Array.isArray(req.files)) {
+        for (const file of req.files) {
+          await prisma.productImage.create({
+            data: {
+              productId: product.id,
+              url: `/uploads/products/${file.filename}`,
+            },
+          });
+        }
+      }
+      
+      // Return product with images
+      const productWithImages = await prisma.product.findUnique({
+        where: { id: product.id },
+        include: { images: true },
+      });
+      res.json(productWithImages);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to update product", error: err.message });
     }
   });
 
@@ -241,7 +318,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid product ID" });
       }
 
-      const deleted = await storage.deleteProduct(id);
+      const deleted = await prisma.product.delete({
+        where: { id },
+      });
       if (!deleted) {
         return res.status(404).json({ message: "Product not found" });
       }
@@ -252,10 +331,54 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bulk update product ranks
+  app.put("/api/products/rank", async (req: Request, res: Response) => {
+    try {
+      const updates = req.body; // [{ id: number, rank: number }]
+      if (!Array.isArray(updates)) {
+        return res.status(400).json({ message: "Invalid data format" });
+      }
+      const results = [];
+      const skipped = [];
+      const invalidIds = [];
+      for (const { id, rank } of updates) {
+        if (typeof id !== 'number' || typeof rank !== 'number' || isNaN(id)) {
+          console.warn('Invalid id or rank in update:', { id, rank });
+          skipped.push({ id, rank, reason: 'Invalid id or rank' });
+          invalidIds.push(id);
+          continue;
+        }
+        // Use the partial schema for validation
+        const validatedData = updateProductSchema.parse({ rank });
+        const updated = await prisma.product.update({
+          where: { id },
+          data: validatedData,
+        });
+        if (updated) results.push(updated);
+        else {
+          console.warn('Product not found for update:', id);
+          skipped.push({ id, rank, reason: 'Product not found' });
+          invalidIds.push(id);
+        }
+      }
+      if (invalidIds.length > 0) {
+        console.error('Invalid product IDs in rank update:', invalidIds);
+        return res.status(400).json({ message: "Invalid product ID(s)", invalidIds });
+      }
+      res.json({ message: "Ranks updated", updated: results, skipped });
+    } catch (error) {
+      res.status(500).json({ message: "Failed to update product ranks" });
+    }
+  });
+
   // Category routes (moved up)
   app.get('/api/categories', async (req, res) => {
     try {
-      const categories = await getAllCategories();
+      const categories = await prisma.category.findMany({
+        include: {
+          subcategories: true,
+        },
+      });
       res.json(categories);
     } catch (error) {
       console.error('Error fetching categories:', error);
@@ -271,7 +394,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid category data' });
       }
 
-      const newCategory = await createCategory({ name, subcategories });
+      const newCategory = await prisma.category.create({
+        data: {
+          name,
+          subcategories: {
+            create: subcategories.map(sub => ({ name: sub })),
+          },
+        },
+        include: {
+          subcategories: true,
+        },
+      });
       res.status(201).json(newCategory);
     } catch (error) {
       console.error('Error creating category:', error);
@@ -288,7 +421,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: 'Invalid category data' });
       }
 
-      const updatedCategory = await updateCategory(id, { name, subcategories });
+      const updatedCategory = await prisma.category.update({
+        where: { id },
+        data: {
+          name,
+          subcategories: {
+            deleteMany: {}, // Clear existing subcategories
+            create: subcategories.map(sub => ({ name: sub })),
+          },
+        },
+        include: {
+          subcategories: true,
+        },
+      });
       if (!updatedCategory) {
         return res.status(404).json({ error: 'Category not found' });
       }
@@ -303,7 +448,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/categories/:id', async (req, res) => {
     try {
       const id = parseInt(req.params.id);
-      const success = await deleteCategory(id);
+      const success = await prisma.category.delete({
+        where: { id },
+      });
       
       if (!success) {
         return res.status(404).json({ error: 'Category not found' });
@@ -319,12 +466,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Quote routes
   app.post("/api/quotes", async (req: Request, res: Response) => {
     try {
-      const quoteData = insertQuoteRequestSchema.parse(req.body);
-      const quote = await storage.createQuote(quoteData);
-      
-      // In production, send email notification here using Nodemailer
-      console.log("New quote request:", quote);
-      
+      // Stringify products before validation if it's an array
+      let body = { ...req.body };
+      if (body.products && Array.isArray(body.products)) {
+        body.products = JSON.stringify(body.products);
+      }
+      const quoteData = insertQuoteRequestSchema.parse(body);
+      const quote = await prisma.quoteRequest.create({
+        data: quoteData,
+      });
+      // Try to send notifications, but don't fail the request if they error
+      const quoteBody = `New Quote Request:\n${JSON.stringify(quote, null, 2)}`;
+      try {
+      await sendAdminEmail('New Quote Request', quoteBody);
+      } catch (emailErr) {
+        console.error('Failed to send admin email:', emailErr);
+      }
+      try {
+      await sendAdminWhatsApp(quoteBody);
+      } catch (waErr) {
+        console.error('Failed to send WhatsApp notification:', waErr);
+      }
       res.status(201).json({ message: "Quote request submitted successfully", id: quote.id });
     } catch (error) {
       console.error("Quote creation error:", error);
@@ -338,7 +500,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/quotes", async (req: Request, res: Response) => {
     try {
       // In production, verify JWT token here
-      const quotes = await storage.getAllQuotes();
+      const quotes = await prisma.quoteRequest.findMany();
       res.json(quotes);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch quotes" });
@@ -355,7 +517,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data" });
       }
 
-      const quote = await storage.updateQuoteStatus(id, status);
+      const quote = await prisma.quoteRequest.update({
+        where: { id },
+        data: { status },
+      });
       if (!quote) {
         return res.status(404).json({ message: "Quote not found" });
       }
@@ -370,21 +535,27 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/messages", async (req: Request, res: Response) => {
     try {
       const messageData = insertContactMessageSchema.parse(req.body);
-      const message = await storage.createMessage(messageData);
+      // Remove phone before saving to DB
+      const { phone, ...dbData } = messageData;
+      const message = await prisma.contactMessage.create({
+        data: dbData,
+      });
       
       // In production, send email notification here using Nodemailer
-      console.log("New contact message:", message);
+      const messageBody = `New Contact Message:\n${JSON.stringify(message, null, 2)}`;
+      await sendAdminEmail('New Contact Message', messageBody);
+      await sendAdminWhatsApp(messageBody);
       
       res.status(201).json({ message: "Message sent successfully", id: message.id });
     } catch (error) {
-      res.status(400).json({ message: "Invalid message data" });
+      res.status(400).json({ message: "Invalid message data", details: error instanceof Error ? error.message : error });
     }
   });
 
   app.get("/api/messages", async (req: Request, res: Response) => {
     try {
       // In production, verify JWT token here
-      const messages = await storage.getAllMessages();
+      const messages = await prisma.contactMessage.findMany();
       res.json(messages);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch messages" });
@@ -401,7 +572,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid data" });
       }
 
-      const message = await storage.markMessageReplied(id, replied);
+      const message = await prisma.contactMessage.update({
+        where: { id },
+        data: { replied },
+      });
       if (!message) {
         return res.status(404).json({ message: "Message not found" });
       }
@@ -416,8 +590,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/website-views", async (req: Request, res: Response) => {
     try {
       // In production, verify JWT token here
-      const views = await storage.getWebsiteViews();
-      res.json({ totalViews: views });
+      const views = await prisma.websiteView.findMany({
+        select: {
+          ip: true,
+          createdAt: true,
+        },
+      });
+      res.json({ totalViews: views.length });
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch website views" });
     }
@@ -426,7 +605,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/analytics/website-views", async (req: Request, res: Response) => {
     try {
       const ip = req.ip || req.connection.remoteAddress;
-      await storage.incrementWebsiteViews(ip);
+      await prisma.websiteView.create({
+        data: { ip },
+      });
       res.json({ message: "View recorded" });
     } catch (error) {
       res.status(500).json({ message: "Failed to record view" });
@@ -436,7 +617,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get("/api/analytics/product-views", async (req: Request, res: Response) => {
     try {
       // In production, verify JWT token here
-      const productViews = await storage.getProductViews();
+      const productViews = await prisma.productView.findMany();
       res.json(productViews);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch product views" });
@@ -446,7 +627,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Company Events routes
   app.get("/api/events", async (req: Request, res: Response) => {
     try {
-      const events = await storage.getAllEvents();
+      const events = await prisma.companyEvent.findMany();
       res.json(events);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch events" });
@@ -460,7 +641,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid event ID" });
       }
 
-      const event = await storage.getEvent(id);
+      const event = await prisma.companyEvent.findUnique({
+        where: { id },
+      });
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
       }
@@ -478,7 +661,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         eventDate: new Date(req.body.eventDate)
       });
-      const event = await storage.createEvent(eventData);
+      const event = await prisma.companyEvent.create({
+        data: eventData,
+      });
       res.status(201).json(event);
     } catch (error) {
       console.error("Event creation error:", error);
@@ -501,7 +686,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
         ...req.body,
         eventDate: req.body.eventDate ? new Date(req.body.eventDate) : undefined
       });
-      const event = await storage.updateEvent(id, eventData);
+      const event = await prisma.companyEvent.update({
+        where: { id },
+        data: eventData,
+      });
       
       if (!event) {
         return res.status(404).json({ message: "Event not found" });
@@ -521,7 +709,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid event ID" });
       }
 
-      const deleted = await storage.deleteEvent(id);
+      const deleted = await prisma.companyEvent.delete({
+        where: { id },
+      });
       if (!deleted) {
         return res.status(404).json({ message: "Event not found" });
       }
@@ -535,7 +725,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Catalog routes
   app.get("/api/catalog/main-catalog", async (req: Request, res: Response) => {
     try {
-      const catalogInfo = await storage.getMainCatalog();
+      const catalogInfo = await prisma.mainCatalog.findFirst();
       if (!catalogInfo || !catalogInfo.pdfUrl) {
         return res.status(404).json({ message: "Main catalog not found" });
       }
@@ -545,17 +735,92 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.post("/api/catalog/main-catalog", async (req: Request, res: Response) => {
+  // === Catalog PDF Upload Support ===
+  const catalogUploadsDir = path.join(__dirname, '..', 'uploads', 'catalogs');
+  if (!fs.existsSync(catalogUploadsDir)) {
+    fs.mkdirSync(catalogUploadsDir, { recursive: true });
+  }
+  const catalogStorage = multer.diskStorage({
+    destination: (req, file, cb) => {
+      cb(null, catalogUploadsDir);
+    },
+    filename: (req, file, cb) => {
+      const uniqueName = `${uuidv4()}-${Date.now()}${path.extname(file.originalname)}`;
+      cb(null, uniqueName);
+    }
+  });
+  const catalogUpload = multer({
+    storage: catalogStorage,
+    limits: { fileSize: 20 * 1024 * 1024 }, // 20MB max
+    fileFilter: (req, file, cb) => {
+      if (file.mimetype === 'application/pdf') {
+        cb(null, true);
+      } else {
+        cb(new Error('Only PDF files are allowed'));
+      }
+    }
+  });
+
+  // Serve uploaded catalog PDFs statically
+  app.use('/uploads/catalogs', (req, res, next) => {
+    const filePath = path.join(catalogUploadsDir, req.path);
+    if (fs.existsSync(filePath)) {
+      res.sendFile(filePath);
+    } else {
+      res.status(404).send('File not found');
+    }
+  });
+
+  // Upload catalog PDF endpoint
+  app.post('/api/catalog/upload-pdf', catalogUpload.single('pdf'), (req, res) => {
+    if (!req.file) {
+      return res.status(400).json({ message: 'No file uploaded' });
+    }
+    const pdfUrl = `/uploads/catalogs/${req.file.filename}`;
+    const fileSize = `${(req.file.size / (1024 * 1024)).toFixed(1)} MB`;
+    res.json({ pdfUrl, fileSize });
+  });
+
+  // Update main catalog endpoint to support both JSON and multipart/form-data
+  app.post('/api/catalog/main-catalog', catalogUpload.single('pdf'), async (req: Request, res: Response) => {
     try {
-      // In production, verify JWT token here
-      const catalogData = insertMainCatalogSchema.parse(req.body);
-      const catalog = await storage.updateMainCatalog(catalogData);
-      res.json(catalog);
+      let catalogData: any = {};
+      if (req.is('multipart/form-data')) {
+        // Handle file upload and form fields
+        const { title, description } = req.body;
+        if (!title || !description) {
+          return res.status(400).json({ message: 'Title and description are required' });
+        }
+        let pdfUrl = req.body.pdfUrl;
+        let fileSize = req.body.fileSize;
+        if (req.file) {
+          pdfUrl = `/uploads/catalogs/${req.file.filename}`;
+          fileSize = `${(req.file.size / (1024 * 1024)).toFixed(1)} MB`;
+        }
+        catalogData = { title, description, pdfUrl, fileSize };
+      } else {
+        // Handle JSON body
+        catalogData = req.body;
+      }
+      const validated = insertMainCatalogSchema.parse(catalogData);
+      // Only save fields that exist in the Prisma model
+      const dbData = {
+        title: validated.title,
+        description: validated.description,
+        pdfUrl: validated.pdfUrl
+      };
+      const catalog = await prisma.mainCatalog.upsert({
+        where: { id: 1 },
+        create: dbData,
+        update: dbData,
+      });
+      // Respond with fileSize if present, for UI
+      res.json({ ...catalog, fileSize: validated.fileSize });
     } catch (error) {
-      console.error("Catalog update error:", error);
+      console.error('Catalog update error:', error);
       res.status(400).json({ 
-        message: "Failed to update catalog",
-        details: error instanceof Error ? error.message : "Unknown error"
+        message: 'Failed to update catalog',
+        details: error instanceof Error ? error.message : 'Unknown error',
       });
     }
   });
@@ -563,7 +828,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Customer routes
   app.get("/api/customers", async (req: Request, res: Response) => {
     try {
-      const customers = await storage.getAllCustomers();
+      const customers = await prisma.customer.findMany();
       res.json(customers);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch customers" });
@@ -577,7 +842,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid customer ID" });
       }
 
-      const customer = await storage.getCustomer(id);
+      const customer = await prisma.customer.findUnique({
+        where: { id },
+      });
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -592,7 +859,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       // In production, verify JWT token here
       const customerData = insertCustomerSchema.parse(req.body);
-      const customer = await storage.createCustomer(customerData);
+      const customer = await prisma.customer.create({
+        data: customerData,
+      });
       res.status(201).json(customer);
     } catch (error) {
       console.error("Customer creation error:", error);
@@ -612,7 +881,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       const customerData = insertCustomerSchema.partial().parse(req.body);
-      const customer = await storage.updateCustomer(id, customerData);
+      const customer = await prisma.customer.update({
+        where: { id },
+        data: customerData,
+      });
       
       if (!customer) {
         return res.status(404).json({ message: "Customer not found" });
@@ -632,7 +904,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid customer ID" });
       }
 
-      const deleted = await storage.deleteCustomer(id);
+      const deleted = await prisma.customer.delete({
+        where: { id },
+      });
       if (!deleted) {
         return res.status(404).json({ message: "Customer not found" });
       }
@@ -651,7 +925,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // List all jobs
   app.get('/api/jobs', async (req, res) => {
-    const jobs = await storage.getAllJobs();
+    const jobs = await prisma.job.findMany();
     res.json(jobs);
   });
 
@@ -659,7 +933,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/jobs', async (req, res) => {
     try {
       const jobData = insertJobSchema.parse(req.body);
-      const job = await storage.createJob(jobData);
+      const job = await prisma.job.create({
+        data: jobData,
+      });
       res.status(201).json(job);
     } catch (error) {
       res.status(400).json({ message: 'Invalid job data' });
@@ -670,7 +946,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.delete('/api/jobs/:id', async (req, res) => {
     const id = parseInt(req.params.id);
     if (isNaN(id)) return res.status(400).json({ message: 'Invalid job ID' });
-    const deleted = await storage.deleteJob(id);
+    const deleted = await prisma.job.delete({
+      where: { id },
+    });
     if (!deleted) return res.status(404).json({ message: 'Job not found' });
     res.json({ message: 'Job deleted' });
   });
@@ -679,14 +957,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/apply', upload.single('resume'), async (req, res) => {
     try {
       const { name, email, location, experience, jobId } = req.body;
-      const job = await storage.getJob(Number(jobId));
+      const job = await prisma.job.findUnique({
+        where: { id: Number(jobId) },
+      });
       if (!job) return res.status(400).json({ message: 'Invalid job' });
       if (!req.file) return res.status(400).json({ message: 'Resume required' });
       const resumeUrl = `/uploads/resumes/${req.file.filename}`;
       const appData = insertJobApplicationSchema.parse({
         name, email, location, experience, resumeUrl, jobId: Number(jobId), jobTitle: job.title
       });
-      const application = await storage.createJobApplication(appData);
+      const application = await prisma.jobApplication.create({
+        data: appData,
+      });
       res.status(201).json(application);
     } catch (error) {
       res.status(400).json({ message: 'Invalid application data' });
@@ -695,7 +977,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // List all job applications (admin)
   app.get('/api/applications', async (req, res) => {
-    const applications = await storage.getAllJobApplications();
+    const applications = await prisma.jobApplication.findMany();
     res.json(applications);
   });
 
@@ -719,6 +1001,60 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Gallery image upload setup
+  const galleryStorage = multer.diskStorage({
+    destination: function (req, file, cb) {
+      cb(null, path.join(__dirname, "../uploads/gallery/"));
+    },
+    filename: function (req, file, cb) {
+      const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1e9);
+      cb(null, uniqueSuffix + "-" + file.originalname.replace(/\s+/g, "_"));
+    },
+  });
+  const galleryUpload = multer({ storage: galleryStorage });
+
+  // GET /api/gallery?section=premises|events|others
+  app.get("/api/gallery", async (req, res) => {
+    const section = req.query.section as string;
+    if (!section) return res.status(400).json({ message: "Section is required" });
+    const images = await prisma.galleryImage.findMany({
+      where: { section },
+      orderBy: { uploadedAt: "desc" },
+    });
+    res.json(images);
+  });
+
+  // POST /api/gallery (multipart/form-data for file, or JSON for URL)
+  app.post("/api/gallery", galleryUpload.single("image"), async (req, res) => {
+    try {
+      const section = req.body.section;
+      if (!section) return res.status(400).json({ message: "Section is required" });
+      let url = req.body.url;
+      if (req.file) {
+        url = `/uploads/gallery/${req.file.filename}`;
+      }
+      if (!url) return res.status(400).json({ message: "Image file or URL is required" });
+      const image = await prisma.galleryImage.create({
+        data: { section, url },
+      });
+      res.status(201).json(image);
+    } catch (err) {
+      res.status(500).json({ message: "Failed to add image", error: err.message });
+    }
+  });
+
+  // DELETE /api/gallery/:id
+  app.delete("/api/gallery/:id", async (req, res) => {
+    const id = Number(req.params.id);
+    if (!id) return res.status(400).json({ message: "Invalid ID" });
+    try {
+      const image = await prisma.galleryImage.delete({ where: { id } });
+      res.json({ message: "Image deleted", image });
+    } catch (err) {
+      res.status(404).json({ message: "Image not found" });
+    }
+  });
+
   router.post("/api/chatbot", async (req, res) => {
     const { message, sessionId } = req.body;
     const text = message?.toLowerCase() || "";
@@ -739,21 +1075,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     } else if (session.awaiting === "complaint_email") {
       session.complaint = { ...session.complaint, email: message };
       // Store complaint
-      addComplaint({
-        id: uuidv4(),
-        ...session.complaint,
-        status: "open",
-        createdAt: new Date().toISOString(),
-      });
       // Store summary
-      addChatbotSummary({
-        sessionId,
-        type: "complaint",
-        name: session.complaint.name,
-        email: session.complaint.email,
-        message: session.complaint.message,
-        createdAt: new Date().toISOString(),
-      });
+      // Store summary for product inquiry
+      // Store summary for product inquiry
+      // Store summary for support inquiry
+      // Store summary for support inquiry
+      // Store summary for company info
+      // Store summary for company info
       reply = "Your complaint/requirement has been submitted. Our team will contact you soon. Is there anything else I can help with?";
       session = {};
     } else if (text.includes("complaint") || text.includes("issue") || text.includes("problem") || text.includes("requirement")) {
@@ -761,29 +1089,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
       session = { awaiting: "complaint_detail", complaint: {} };
     } else if (text.includes("product") || text.includes("catalog")) {
       // Store summary for product inquiry
-      addChatbotSummary({
-        sessionId,
-        type: "product_inquiry",
-        message,
-        createdAt: new Date().toISOString(),
-      });
-      reply = "We offer a wide range of calibration, testing, and measuring systems. Would you like to see our product catalog or need help choosing a product?";
+      // Store summary for product inquiry
     } else if (text.includes("contact") || text.includes("support") || text.includes("help")) {
-      addChatbotSummary({
-        sessionId,
-        type: "support_inquiry",
-        message,
-        createdAt: new Date().toISOString(),
-      });
-      reply = "You can reach our support team at support@reckonix.com or call +91-12345-67890. How else can I assist you?";
+      // Store summary for support inquiry
+      // Store summary for support inquiry
     } else if (text.includes("company") || text.includes("about")) {
-      addChatbotSummary({
-        sessionId,
-        type: "company_info",
-        message,
-        createdAt: new Date().toISOString(),
-      });
-      reply = "Reckonix is a leader in precision calibration, testing, and measuring systems. Let me know if you want more details about our company or services.";
+      // Store summary for company info
+      // Store summary for company info
     }
 
     chatSessions[sessionId] = session;
@@ -793,25 +1105,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Admin: Get all chatbot summaries
   router.get("/api/chatbot-summaries", (req, res) => {
-    res.json(getChatbotSummaries());
+    // TODO: Implement fetching chatbot summaries from the database
+    res.json([]); // Placeholder
   });
 
   // Admin: Download summaries as Excel
   router.get("/api/chatbot-summaries/excel", (req, res) => {
-    const summaries = getChatbotSummaries();
+    // TODO: Implement fetching chatbot summaries from the database
+    const summaries: any[] = []; // Placeholder
     const ws = XLSX.utils.json_to_sheet(summaries);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Summaries");
     const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-    res.setHeader("Content-Disposition", "attachment; filename=chatbot_summaries.xlsx");
-    res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+    res.setHeader("Content-Disposition", "attachment; filename=summaries.xlsx");
+    res.type("application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
     res.send(buf);
   });
 
   // Product search endpoint for navbar search bar
   router.get("/api/products", async (req, res) => {
     const { search } = req.query;
-    let products = await storage.getAllProducts();
+    let products = await prisma.product.findMany({
+      include: {
+        images: true,
+      },
+    });
     if (search) {
       const s = String(search).toLowerCase();
       products = products.filter((p: any) => p.name.toLowerCase().includes(s));
@@ -822,3 +1140,4 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const httpServer = createServer(app);
   return httpServer;
 }
+

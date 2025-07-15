@@ -48,7 +48,7 @@ export default function ProductDetail() {
         <div className="text-center">
           <h1 className="text-2xl font-bold text-gray-900 mb-4">Product Not Found</h1>
           <p className="text-gray-600 mb-6">The product you're looking for doesn't exist.</p>
-          <Button asChild className="bg-maroon-500 hover:bg-maroon-600">
+          <Button asChild className="bg-[#800000] text-white hover:bg-[#6b0000]">
             <Link href="/products">Back to Products</Link>
           </Button>
         </div>
@@ -60,7 +60,7 @@ export default function ProductDetail() {
     switch (category) {
       case "Calibration Systems":
         return "bg-maroon-100 text-maroon-600";
-      case "Testing Systems":
+      case "Metrology Systems":
         return "bg-blue-100 text-blue-600";
       case "Measuring Instruments":
         return "bg-green-100 text-green-600";
@@ -68,6 +68,42 @@ export default function ProductDetail() {
         return "bg-gray-100 text-gray-600";
     }
   };
+
+  // Parse all JSON fields if needed
+  const specifications = Array.isArray(product.specifications)
+    ? product.specifications
+    : (typeof product.specifications === "string"
+        ? JSON.parse(product.specifications || "[]")
+        : []);
+  const featuresBenefits = Array.isArray(product.featuresBenefits)
+    ? product.featuresBenefits
+    : (typeof product.featuresBenefits === "string"
+        ? JSON.parse(product.featuresBenefits || "[]")
+        : []);
+  const applications = Array.isArray(product.applications)
+    ? product.applications
+    : (typeof product.applications === "string"
+        ? JSON.parse(product.applications || "[]")
+        : []);
+  const certifications = Array.isArray(product.certifications)
+    ? product.certifications
+    : (typeof product.certifications === "string"
+        ? JSON.parse(product.certifications || "[]")
+        : []);
+  const technicalDetails = product.technicalDetails && typeof product.technicalDetails === "string"
+    ? JSON.parse(product.technicalDetails || "{}")
+    : (product.technicalDetails || {});
+  // Parse imageGallery here and pass as prop
+  const imageGallery = Array.isArray(product.imageGallery)
+    ? product.imageGallery
+    : (typeof product.imageGallery === "string"
+        ? JSON.parse(product.imageGallery || "[]")
+        : []);
+
+  // In the component, get all images from product.images (array from backend)
+  const images = product.images && product.images.length > 0
+    ? product.images.map((img: any) => img.url)
+    : (product.imageUrl ? [product.imageUrl] : []);
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -93,7 +129,7 @@ export default function ProductDetail() {
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.4 }}
         >
-          <Button variant="ghost" asChild className="text-maroon-500 hover:text-maroon-600">
+          <Button variant="ghost" asChild className="text-[#800000] hover:text-[#6b0000]">
             <Link href="/products">
               <ArrowLeft className="mr-2 h-4 w-4" />
               Back to Products
@@ -109,7 +145,7 @@ export default function ProductDetail() {
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.6 }}
           >
-            <ProductImageCarousel product={product} />
+            <ProductImageCarousel images={images} productName={product.name} />
           </motion.div>
 
           {/* Product Details */}
@@ -133,7 +169,7 @@ export default function ProductDetail() {
             <div className="flex flex-col sm:flex-row gap-4 mb-8">
               <Button 
                 onClick={handleAddToCart}
-                className="bg-maroon-500 text-white px-6 py-3 hover:bg-maroon-600 transition-all flex items-center justify-center"
+                className="bg-[#800000] text-white px-6 py-3 hover:bg-[#6b0000] transition-all flex items-center justify-center"
               >
                 <ShoppingCart className="mr-2 h-4 w-4" />
                 Add to Quote
@@ -141,7 +177,7 @@ export default function ProductDetail() {
               {product.datasheetPdfUrl ? (
                 <Button 
                   variant="outline" 
-                  className="border-2 border-maroon-500 text-maroon-500 px-6 py-3 hover:bg-maroon-500 hover:text-white transition-all flex items-center justify-center"
+                  className="border-2 border-[#800000] text-[#800000] px-6 py-3 hover:bg-[#800000] hover:text-white transition-all flex items-center justify-center"
                   onClick={() => window.open(product.datasheetPdfUrl, '_blank')}
                 >
                   <Download className="mr-2 h-4 w-4" />
@@ -163,7 +199,7 @@ export default function ProductDetail() {
             <div className="bg-white rounded-lg p-6 shadow-lg">
               <h3 className="font-semibold text-lg text-gray-900 mb-4">Key Specifications</h3>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-sm">
-                {product.specifications.slice(0, 4).map((spec, index) => (
+                {specifications.slice(0, 4).map((spec, index) => (
                   <div key={index}>
                     <span className="font-medium text-gray-700">{spec.key}:</span>
                     <span className="text-gray-600 ml-2">{spec.value}</span>
@@ -227,7 +263,7 @@ export default function ProductDetail() {
                         </tr>
                       </thead>
                       <tbody>
-                        {product.specifications.map((spec, index) => (
+                        {specifications.map((spec, index) => (
                           <tr key={index}>
                             <td className="border border-gray-300 px-4 py-3 text-gray-700">{spec.key}</td>
                             <td className="border border-gray-300 px-4 py-3 text-gray-600">{spec.value}</td>
@@ -241,7 +277,7 @@ export default function ProductDetail() {
                 <TabsContent value="features">
                   <h3 className="font-semibold text-xl text-gray-900 mb-6">Features & Benefits</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    {product.featuresBenefits.map((feature, index) => (
+                    {featuresBenefits.map((feature, index) => (
                       <div key={index} className="flex items-start">
                         <div className="w-2 h-2 bg-maroon-500 rounded-full mt-2 mr-3 flex-shrink-0"></div>
                         <div>
@@ -255,7 +291,7 @@ export default function ProductDetail() {
                 <TabsContent value="applications">
                   <h3 className="font-semibold text-xl text-gray-900 mb-6">Applications</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {product.applications.map((application, index) => (
+                    {applications.map((application, index) => (
                       <div key={index} className="bg-gray-50 rounded-lg p-4">
                         <h4 className="font-semibold text-gray-900 mb-2">{application}</h4>
                         <p className="text-gray-600 text-sm">Industry-specific applications and use cases</p>
@@ -267,7 +303,7 @@ export default function ProductDetail() {
                 <TabsContent value="certifications">
                   <h3 className="font-semibold text-xl text-gray-900 mb-6">Certifications & Compliance</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {product.certifications.map((cert, index) => (
+                    {certifications.map((cert, index) => (
                       <div key={index} className="bg-white border-2 border-gray-200 rounded-lg p-6 text-center hover:border-maroon-500 transition-all">
                         <div className="w-12 h-12 bg-maroon-100 rounded-full flex items-center justify-center mx-auto mb-4">
                           <div className="w-6 h-6 bg-maroon-500 rounded-full"></div>
@@ -281,36 +317,36 @@ export default function ProductDetail() {
 
                 <TabsContent value="technical-details">
                   <h3 className="font-semibold text-xl text-gray-900 mb-6">Technical Details</h3>
-                  {product.technicalDetails ? (
+                  {technicalDetails ? (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                      {product.technicalDetails.dimensions && (
+                      {technicalDetails.dimensions && (
                         <div className="bg-gray-50 rounded-lg p-4">
                           <h4 className="font-semibold text-gray-900 mb-2">Dimensions</h4>
-                          <p className="text-gray-600">{product.technicalDetails.dimensions}</p>
+                          <p className="text-gray-600">{technicalDetails.dimensions}</p>
                         </div>
                       )}
-                      {product.technicalDetails.weight && (
+                      {technicalDetails.weight && (
                         <div className="bg-gray-50 rounded-lg p-4">
                           <h4 className="font-semibold text-gray-900 mb-2">Weight</h4>
-                          <p className="text-gray-600">{product.technicalDetails.weight}</p>
+                          <p className="text-gray-600">{technicalDetails.weight}</p>
                         </div>
                       )}
-                      {product.technicalDetails.powerRequirements && (
+                      {technicalDetails.powerRequirements && (
                         <div className="bg-gray-50 rounded-lg p-4">
                           <h4 className="font-semibold text-gray-900 mb-2">Power Requirements</h4>
-                          <p className="text-gray-600">{product.technicalDetails.powerRequirements}</p>
+                          <p className="text-gray-600">{technicalDetails.powerRequirements}</p>
                         </div>
                       )}
-                      {product.technicalDetails.operatingConditions && (
+                      {technicalDetails.operatingConditions && (
                         <div className="bg-gray-50 rounded-lg p-4">
                           <h4 className="font-semibold text-gray-900 mb-2">Operating Conditions</h4>
-                          <p className="text-gray-600">{product.technicalDetails.operatingConditions}</p>
+                          <p className="text-gray-600">{technicalDetails.operatingConditions}</p>
                         </div>
                       )}
-                      {product.technicalDetails.warranty && (
+                      {technicalDetails.warranty && (
                         <div className="bg-gray-50 rounded-lg p-4">
                           <h4 className="font-semibold text-gray-900 mb-2">Warranty</h4>
-                          <p className="text-gray-600">{product.technicalDetails.warranty}</p>
+                          <p className="text-gray-600">{technicalDetails.warranty}</p>
                         </div>
                       )}
                     </div>
@@ -327,52 +363,44 @@ export default function ProductDetail() {
   );
 }
 
-const ProductImageCarousel = ({ product }: { product: any }) => {
-  const images = product.imageGallery && product.imageGallery.length > 0
-    ? product.imageGallery
-    : [product.imageUrl];
+const ProductImageCarousel = ({ images, productName }: { images: string[], productName: string }) => {
   const [index, setIndex] = React.useState(0);
-  const carouselRef = React.useRef<any>(null);
   React.useEffect(() => {
     const interval = setInterval(() => {
       setIndex((prev) => (prev + 1) % images.length);
     }, 5000);
     return () => clearInterval(interval);
   }, [images.length]);
-  // Manual navigation
-  const goPrev = () => setIndex((prev) => (prev - 1 + images.length) % images.length);
-  const goNext = () => setIndex((prev) => (prev + 1) % images.length);
+  if (!images.length) return null;
   return (
     <div className="relative">
-      <Carousel opts={{ loop: true }}>
-        <CarouselContent style={{ transform: `translateX(-${index * 100}%)`, transition: 'transform 0.6s' }}>
-          {images.map((img: string, i: number) => (
-            <CarouselItem key={i} className="flex items-center justify-center">
-              <img
-                src={img}
-                alt={product.name}
-                className="w-full rounded-xl shadow-lg object-cover max-h-[400px]"
-                style={{ maxWidth: 600 }}
-              />
-            </CarouselItem>
-          ))}
-        </CarouselContent>
-        {/* Navigation Arrows */}
-        <button
-          className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow"
-          onClick={goPrev}
-          aria-label="Previous image"
-        >
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
-        </button>
-        <button
-          className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow"
-          onClick={goNext}
-          aria-label="Next image"
-        >
-          <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
-        </button>
-      </Carousel>
+      <div className="flex items-center justify-center">
+        <img
+          src={images[index]}
+          alt={productName}
+          className="w-full rounded-xl shadow-lg object-contain bg-white max-h-[400px]"
+          style={{ maxWidth: 600 }}
+        />
+      </div>
+      {/* Navigation Arrows */}
+      {images.length > 1 && (
+        <>
+          <button
+            className="absolute left-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow"
+            onClick={() => setIndex((prev) => (prev - 1 + images.length) % images.length)}
+            aria-label="Previous image"
+          >
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M15 18l-6-6 6-6" /></svg>
+          </button>
+          <button
+            className="absolute right-2 top-1/2 -translate-y-1/2 bg-white/80 hover:bg-white rounded-full p-2 shadow"
+            onClick={() => setIndex((prev) => (prev + 1) % images.length)}
+            aria-label="Next image"
+          >
+            <svg width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M9 6l6 6-6 6" /></svg>
+          </button>
+        </>
+      )}
     </div>
   );
 };

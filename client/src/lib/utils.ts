@@ -8,7 +8,7 @@ export function cn(...inputs: ClassValue[]) {
 export interface Category {
   id: number;
   name: string;
-  subcategories: string[];
+  subcategories: (string | { id: number; name: string; categoryId?: number })[];
 }
 
 export const fetchCategories = async (): Promise<Category[]> => {
@@ -17,7 +17,12 @@ export const fetchCategories = async (): Promise<Category[]> => {
     if (!response.ok) {
       throw new Error('Failed to fetch categories');
     }
-    return await response.json();
+    const data = await response.json();
+    // Normalize subcategories to array of strings (names)
+    return data.map((cat: any) => ({
+      ...cat,
+      subcategories: (cat.subcategories || []).map((sub: any) => typeof sub === 'string' ? sub : sub.name)
+    }));
   } catch (error) {
     console.error('Error fetching categories:', error);
     return [];

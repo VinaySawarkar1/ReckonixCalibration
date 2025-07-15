@@ -19,9 +19,10 @@ import AdminDashboard from "./pages/admin/dashboard";
 import NotFound from "@/pages/not-found";
 import Career from "./pages/Career";
 import GalleryPage from "./pages/gallery";
-import Chatbot from "./components/chatbot";
 import ChatbotSummariesAdmin from "./pages/admin/chatbot-summaries";
 import CategoryManagement from "./pages/admin/category-management";
+import { CategoryProvider } from "@/context/category-context";
+import Chatbot from "./components/chatbot";
 
 function Router() {
   return (
@@ -49,6 +50,7 @@ function Router() {
 function App() {
   return (
     <QueryClientProvider client={queryClient}>
+      <CategoryProvider>
       <TooltipProvider>
         <AuthProvider>
           <CartProvider>
@@ -64,6 +66,7 @@ function App() {
           </CartProvider>
         </AuthProvider>
       </TooltipProvider>
+      </CategoryProvider>
     </QueryClientProvider>
   );
 }

@@ -9,7 +9,7 @@ import { motion } from "framer-motion";
 import type { Product } from "@shared/schema";
 
 interface ProductCardProps {
-  product: Product;
+  product: Product & { images?: { url: string }[] };
 }
 
 export default function ProductCard({ product }: ProductCardProps) {
@@ -29,7 +29,7 @@ export default function ProductCard({ product }: ProductCardProps) {
     switch (category) {
       case "Calibration Systems":
         return "bg-maroon-100 text-maroon-600";
-      case "Testing Systems":
+      case "Metrology Systems":
         return "bg-blue-100 text-blue-600";
       case "Measuring Instruments":
         return "bg-green-100 text-green-600";
@@ -46,10 +46,15 @@ export default function ProductCard({ product }: ProductCardProps) {
       <Card className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-lg transition-all h-full w-64 min-w-[220px] max-w-xs">
         <Link href={`/products/${product.id}`}>
           <div className="relative">
+            {/** Use first image from images array if available, else fallback */}
             <img 
-              src={product.imageUrl} 
+              src={
+                product.images && product.images.length > 0
+                  ? product.images[0].url
+                  : (product.imageUrl || "/default-placeholder.jpg")
+              }
               alt={product.name}
-              className="w-full h-36 object-cover"
+              className="w-full h-48 object-contain bg-white"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent" />
           </div>
@@ -77,14 +82,14 @@ export default function ProductCard({ product }: ProductCardProps) {
           <div className="flex justify-between items-center mt-auto pt-3 border-t">
             <Link 
               href={`/products/${product.id}`}
-              className="text-maroon-500 hover:text-maroon-600 font-medium text-xs transition-colors"
+              className="text-[#800000] hover:text-[#6b0000] font-medium text-xs transition-colors"
             >
               View Details
             </Link>
             <Button 
               onClick={handleAddToCart}
               size="sm"
-              className="bg-maroon-500 text-white hover:bg-maroon-600 transition-all px-2 py-1 text-xs"
+              className="bg-[#800000] text-white hover:bg-[#6b0000] transition-all px-2 py-1 text-xs"
             >
               <ShoppingCart className="h-3 w-3 mr-1" />
               Add to Quote

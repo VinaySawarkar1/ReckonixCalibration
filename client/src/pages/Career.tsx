@@ -50,6 +50,44 @@ const Career: React.FC = () => {
       .then(setJobs);
   }, []);
 
+  // Demo jobs if API returns none
+  const demoJobs: Job[] = [
+    {
+      id: 'sales',
+      title: 'Sales Executive',
+      location: 'Pune, Maharashtra',
+      experience: '2+ years in B2B sales',
+      description: `
+        <b>Job Description:</b> Responsible for generating leads, managing client relationships, and achieving sales targets for calibration and measurement systems.<br/>
+        <b>Skills:</b> Excellent communication, negotiation, CRM tools, technical aptitude.<br/>
+        <b>Experience:</b> 2+ years in industrial/B2B sales, preferably in engineering or instrumentation sector.
+      `,
+    },
+    {
+      id: 'marketing',
+      title: 'Marketing Specialist',
+      location: 'Pune, Maharashtra',
+      experience: '2+ years in marketing',
+      description: `
+        <b>Job Description:</b> Plan and execute marketing campaigns, manage digital presence, and support product launches.<br/>
+        <b>Skills:</b> Digital marketing, content creation, analytics, event management.<br/>
+        <b>Experience:</b> 2+ years in marketing, preferably in technology or manufacturing domain.
+      `,
+    },
+    {
+      id: 'servicing',
+      title: 'Service Engineer',
+      location: 'Pan India (Travel Required)',
+      experience: '1+ years in field servicing',
+      description: `
+        <b>Job Description:</b> Install, calibrate, and service measurement and calibration equipment at client sites.<br/>
+        <b>Skills:</b> Troubleshooting, technical support, customer handling, willingness to travel.<br/>
+        <b>Experience:</b> 1+ years in servicing/calibration, diploma or degree in engineering preferred.
+      `,
+    },
+  ];
+  const jobsToShow = jobs.length > 0 ? jobs : demoJobs;
+
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     setForm({ ...form, [e.target.name]: e.target.value });
   };
@@ -76,7 +114,7 @@ const Career: React.FC = () => {
   return (
     <div>
       {/* Hero Section */}
-      <section className="relative bg-maroon-500 text-white py-6 overflow-hidden">
+      <section className="relative bg-[#800000] text-white py-6 overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
           <g stroke="white" strokeWidth="2" opacity="0.5">
@@ -99,7 +137,7 @@ const Career: React.FC = () => {
         </svg>
         <div className="max-w-3xl mx-auto px-4 text-center relative z-10">
           <h1 className="text-3xl md:text-4xl font-bold mb-4 heading-white">Join Reckonix. Shape the Future.</h1>
-          <p className="text-lg md:text-xl mb-6 text-maroon-100">We believe in empowering talent, fostering innovation, and building a better tomorrow. Explore your next career move with us!</p>
+          <p className="text-lg md:text-xl mb-6 text-maroon-100">We believe in empowering talent, fostering innovation, and building a better tomorrow. Explore your next career move with us in precision calibration and measurement technology!</p>
         </div>
         {/* Decorative SVG */}
         <svg className="absolute bottom-0 left-0 w-full h-16" viewBox="0 0 100 16" preserveAspectRatio="none">
@@ -125,13 +163,25 @@ const Career: React.FC = () => {
       <section className="max-w-4xl mx-auto px-4 mb-16">
         <h2 className="text-2xl font-bold mb-6 text-maroon-500">Open Positions</h2>
         {jobs.length === 0 ? (
-          <div className="bg-white rounded-xl shadow p-8 text-center text-gray-700">
-            <div className="text-xl font-semibold mb-2">No open positions right now.</div>
-            <div className="mb-4">We’re always looking for talented people! Send your resume to <a href="mailto:hr@reckonix.com" className="text-maroon-500 underline">hr@reckonix.com</a> and we’ll get in touch when a suitable role opens up.</div>
+          <ul>
+            {jobsToShow.map(job => (
+              <li key={job.id} className="mb-6 p-6 border border-maroon-100 rounded-xl bg-white shadow-sm hover:shadow-md transition-all">
+                <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
+                  <div>
+                    <div className="font-bold text-lg text-maroon-500">{job.title}</div>
+                    <div className="text-sm text-gray-600">{job.location} | {job.experience}</div>
+                  </div>
+                  <button className="bg-maroon-500 text-white px-5 py-2 rounded hover:bg-maroon-600 transition-all" onClick={() => setSelectedJob(job)}>
+                    Apply
+                  </button>
           </div>
+                <div className="mt-2 text-gray-700" dangerouslySetInnerHTML={{ __html: job.description }} />
+              </li>
+            ))}
+          </ul>
         ) : (
           <ul>
-            {jobs.map(job => (
+            {jobsToShow.map(job => (
               <li key={job.id} className="mb-6 p-6 border border-maroon-100 rounded-xl bg-white shadow-sm hover:shadow-md transition-all">
                 <div className="flex flex-col md:flex-row md:justify-between md:items-center gap-2">
                   <div>
@@ -142,7 +192,7 @@ const Career: React.FC = () => {
                     Apply
                   </button>
                 </div>
-                <div className="mt-2 text-gray-700">{job.description}</div>
+                <div className="mt-2 text-gray-700" dangerouslySetInnerHTML={{ __html: job.description }} />
               </li>
             ))}
           </ul>

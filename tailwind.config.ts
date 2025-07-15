@@ -68,6 +68,18 @@ export default {
           600: "var(--maroon-600)",
           700: "var(--maroon-700)",
         },
+        steel: {
+          DEFAULT: '#4682B4',
+        },
+        gray: {
+          DEFAULT: '#A9A9A9',
+        },
+        gold: {
+          DEFAULT: '#FFD700',
+        },
+        coral: {
+          DEFAULT: '#FF6347',
+        },
         saddle: {
           500: "var(--saddle-500)",
           600: "var(--saddle-600)",

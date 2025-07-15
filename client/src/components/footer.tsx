@@ -25,8 +25,8 @@ export default function Footer() {
           <div>
             <h3 className="font-cinzel text-xl font-bold text-white mb-4">RECKONIX</h3>
             <p className="text-gray-300 mb-4 text-sm leading-relaxed">
-              Leading manufacturer of precision calibration systems, testing equipment, and measuring instruments. 
-              Trusted by industries worldwide for over two decades.
+              We "Reckonix" are Manufacturer of Calibration System, Testing System, Measuring System and many more. 
+              Serving customers across India with precision equipment and reliable support.
             </p>
             <div className="flex space-x-4">
               {socialLinks.map((social) => {
@@ -70,47 +70,50 @@ export default function Footer() {
             </h4>
             <div className="text-gray-300 text-sm space-y-2">
               <p>
-                Gera's Imperium Gateway, office A-205,<br />
-                opp. Bhosari Metro Station, Nashik Phata,<br />
+                Gera's Imperium Gateway, office A-205, opp. Bhosari Metro Station, Nashik Phata,<br />
                 Pune, Maharashtra 411034
               </p>
               <p className="flex items-center">
                 <Phone className="h-4 w-4 mr-2" />
-                9175240313
+                9175240313, 9823081155
               </p>
               <p className="flex items-center">
                 <Mail className="h-4 w-4 mr-2" />
-                sales@reckonix.com
+                sales@reckonix.co.in, sales@reckonix.in
+              </p>
+              <p className="text-xs">
+                GST No.: 27ABGFR0875B1ZA
               </p>
               <button
                 className="text-maroon-400 hover:text-maroon-300 text-sm mt-2 flex items-center"
-                onClick={() => window.open('https://www.google.com/maps/dir/?api=1&destination=Gera\'s+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034', '_blank')}
+                onClick={() => window.open('https://maps.app.goo.gl/3Qw2Qw2Qw2Qw2Qw2A', '_blank')}
               >
                 <MapPin className="h-4 w-4 mr-1" />
                 Get Directions
               </button>
             </div>
           </div>
-
-          {/* Workshop */}
+          {/* Manufacturing Facility */}
           <div>
             <h4 className="font-semibold text-white mb-4 flex items-center">
               <Factory className="h-5 w-5 mr-2" />
-              Workshop
+              Manufacturing Unit
             </h4>
             <div className="text-gray-300 text-sm space-y-2">
               <p>
-                Plot No. BG/PAP3, Unit F2, MIDC,<br />
-                MIDC Road, Bhosari,<br />
+                PLOT NO, BG/PAP3, UNIT F2, MIDC, MIDC Rd, Bhosari,<br />
                 Pune, Maharashtra 411026
               </p>
               <p className="flex items-center">
                 <Phone className="h-4 w-4 mr-2" />
-                9175240313
+                9175240313, 9823081155
               </p>
               <p className="flex items-center">
                 <Mail className="h-4 w-4 mr-2" />
-                sales@reckonix.com
+                sales@reckonix.co.in, sales@reckonix.in
+              </p>
+              <p className="text-xs">
+                Service Location: Pan India
               </p>
               <button
                 className="text-maroon-400 hover:text-maroon-300 text-sm mt-2 flex items-center"
@@ -130,21 +133,22 @@ export default function Footer() {
             <div className="bg-gray-800 h-48 rounded-lg flex items-center justify-center mt-4">
               <iframe
                 title="Corporate Office Map"
-                src="https://www.google.com/maps?q=Gera's+Imperium+Gateway,+office+A-205,+opp.+Bhosari+Metro+Station,+Nashik+Phata,+Pune,+Maharashtra+411034&output=embed"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3781.176837774971!2d73.8149058710421!3d18.611114227750015!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9dfa87ebe4d%3A0xe95a3ca7b090d08a!2sReckonix%20(%20Corporate%20office%20)!5e0!3m2!1sen!2sin!4v1752172357866!5m2!1sen!2sin"
                 width="100%"
                 height="180"
                 style={{ border: 0 }}
                 allowFullScreen={true}
                 loading="lazy"
+                referrerPolicy="no-referrer-when-downgrade"
               ></iframe>
             </div>
           </div>
           <div>
-            <h5 className="font-semibold text-white mb-3">Workshop Location</h5>
+            <h5 className="font-semibold text-white mb-3">Manufacturing Facility Location</h5>
             <div className="bg-gray-800 h-48 rounded-lg flex items-center justify-center mt-4">
               <iframe
-                title="Workshop Map"
-                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3780.9394956883684!2d73.82740987417215!3d18.621790966076567!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e5c1527d61%3A0x22027655dc385965!2sReckonix%20(%20Work%20Shop%20)!5e0!3m2!1sen!2sin!4v1751660068426!5m2!1sen!2sin"
+                title="Manufacturing Facility Map"
+                src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3780.9394956883684!2d73.82740987417216!3d18.62179096607656!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bc2b9e5c1527d61%3A0x22027655dc385965!2sReckonix%20(%20Manufacturing%20)!5e0!3m2!1sen!2sin!4v1752174210521!5m2!1sen!2sin"
                 width="100%"
                 height="180"
                 style={{ border: 0 }}
