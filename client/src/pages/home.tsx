@@ -121,7 +121,7 @@ export default function Home() {
       <section className="relative bg-white text-[#800000] py-6 overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g stroke="#e6bfc0" stroke-width="2" opacity="0.5">
+          <g stroke="#e6bfc0" strokeWidth="2" opacity="0.5">
             <polyline points="0,100 300,100 400,200 700,200" />
             <polyline points="200,0 500,0 600,100 900,100" />
             <polyline points="400,200 700,200 800,300 1100,300" />
@@ -398,7 +398,7 @@ export default function Home() {
       <section className="relative py-16 bg-[#800000] text-white overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g stroke="white" stroke-width="2" opacity="0.5">
+          <g stroke="white" strokeWidth="2" opacity="0.5">
             <polyline points="0,100 300,100 400,200 700,200" />
             <polyline points="200,0 500,0 600,100 900,100" />
             <polyline points="400,200 700,200 800,300 1100,300" />
