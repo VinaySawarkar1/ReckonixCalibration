@@ -10,15 +10,112 @@ import { toast } from '../../hooks/use-toast';
 import { Category, fetchCategories } from '../../lib/utils';
 import { Trash2, Edit, Plus, X } from 'lucide-react';
 
+// Helper to normalize subcategories to objects recursively
+function normalizeSubcategories(subs) {
+  return (subs || []).map(sub => {
+    if (typeof sub === 'string') return { name: sub, children: [] };
+    return {
+      name: sub.name,
+      children: normalizeSubcategories(sub.children)
+    };
+  });
+}
+
+// Helper for tree editing with path arrays
+function TreeEditor({ nodes, setNodes }) {
+  // Helper to get node by path
+  const getNodeByPath = (arr, path) => {
+    let node = arr;
+    for (let i = 0; i < path.length; i++) {
+      node = node[path[i]].children;
+    }
+    return node;
+  };
+  // Set node name by path
+  const setNameByPath = (arr, path, value) => {
+    if (path.length === 1) {
+      arr[path[0]].name = value;
+    } else {
+      setNameByPath(arr[path[0]].children, path.slice(1), value);
+    }
+  };
+  // Add subcategory at path
+  const addSubByPath = (arr, path) => {
+    if (path.length === 0) {
+      arr.push({ name: '', children: [] });
+    } else {
+      let node = arr[path[0]];
+      if (!node.children) node.children = [];
+      if (path.length === 1) {
+        node.children.push({ name: '', children: [] });
+      } else {
+        addSubByPath(node.children, path.slice(1));
+      }
+    }
+  };
+  // Delete node at path
+  const deleteByPath = (arr, path) => {
+    if (path.length === 1) {
+      arr.splice(path[0], 1);
+    } else {
+      deleteByPath(arr[path[0]].children, path.slice(1));
+    }
+  };
+  // Render tree recursively
+  const renderTree = (arr, path = []) => (
+    <ul className="ml-4">
+      {arr.map((node, idx) => (
+        <li key={idx} className="mb-2">
+          <input
+            className="border px-2 py-1 rounded mr-2"
+            value={node.name}
+            onChange={e => {
+              const updated = JSON.parse(JSON.stringify(nodes));
+              setNameByPath(updated, [...path, idx], e.target.value);
+              setNodes(updated);
+            }}
+            placeholder="Subcategory name"
+          />
+          <button type="button" className="ml-1 text-xs text-red-500" onClick={() => {
+            const updated = JSON.parse(JSON.stringify(nodes));
+            deleteByPath(updated, [...path, idx]);
+            setNodes(updated);
+          }}>
+            Delete
+          </button>
+          <button type="button" className="ml-1 text-xs text-green-600" onClick={() => {
+            const updated = JSON.parse(JSON.stringify(nodes));
+            addSubByPath(updated, [...path, idx]);
+            setNodes(updated);
+          }}>
+            + Sub
+          </button>
+          {node.children && node.children.length > 0 && renderTree(node.children, [...path, idx])}
+        </li>
+      ))}
+    </ul>
+  );
+  return (
+    <div>
+      {renderTree(nodes)}
+      <button type="button" className="mt-2 px-2 py-1 bg-blue-100 rounded" onClick={() => {
+        const updated = JSON.parse(JSON.stringify(nodes));
+        addSubByPath(updated, []);
+        setNodes(updated);
+      }}>
+        + Add Subcategory
+      </button>
+    </div>
+  );
+}
+
 export default function CategoryManagement() {
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(true);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [formData, setFormData] = useState({
-    name: '',
-    subcategories: ''
-  });
+  const [formData, setFormData] = useState({ name: '' });
+  const [treeSubcategories, setTreeSubcategories] = useState([]);
 
   useEffect(() => {
     loadCategories();
@@ -27,13 +124,10 @@ export default function CategoryManagement() {
   const loadCategories = async () => {
     try {
       const data = await fetchCategories();
-      setCategories(data);
+      // Normalize all subcategories to objects
+      setCategories(data.map(cat => ({ ...cat, subcategories: normalizeSubcategories(cat.subcategories) })));
     } catch (error) {
-      toast({
-        title: "Error",
-        description: "Failed to load categories",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "Failed to load categories", variant: "destructive" });
     } finally {
       setLoading(false);
     }
@@ -42,17 +136,8 @@ export default function CategoryManagement() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    const subcategoriesArray = formData.subcategories
-      .split('\n')
-      .map(s => s.trim())
-      .filter(s => s.length > 0);
-
-    if (!formData.name.trim() || subcategoriesArray.length === 0) {
-      toast({
-        title: "Error",
-        description: "Please fill in all fields",
-        variant: "destructive",
-      });
+    if (!formData.name.trim()) {
+      toast({ title: 'Error', description: 'Please fill in all fields', variant: 'destructive' });
       return;
     }
 
@@ -68,10 +153,7 @@ export default function CategoryManagement() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          name: formData.name.trim(),
-          subcategories: subcategoriesArray
-        }),
+        body: JSON.stringify({ name: formData.name.trim(), subcategories: treeSubcategories }),
       });
 
       if (!response.ok) {
@@ -87,7 +169,8 @@ export default function CategoryManagement() {
 
       setIsDialogOpen(false);
       setEditingCategory(null);
-      setFormData({ name: '', subcategories: '' });
+      setFormData({ name: '' });
+      setTreeSubcategories([]);
       loadCategories();
     } catch (error) {
       toast({
@@ -129,16 +212,15 @@ export default function CategoryManagement() {
 
   const handleEdit = (category: Category) => {
     setEditingCategory(category);
-    setFormData({
-      name: category.name,
-      subcategories: category.subcategories.join('\n')
-    });
+    setFormData({ name: category.name });
+    setTreeSubcategories(normalizeSubcategories(category.subcategories));
     setIsDialogOpen(true);
   };
 
   const handleAdd = () => {
     setEditingCategory(null);
-    setFormData({ name: '', subcategories: '' });
+    setFormData({ name: '' });
+    setTreeSubcategories([]);
     setIsDialogOpen(true);
   };
 
@@ -181,15 +263,8 @@ export default function CategoryManagement() {
                 />
               </div>
               <div>
-                <Label htmlFor="subcategories">Subcategories (one per line)</Label>
-                <Textarea
-                  id="subcategories"
-                  value={formData.subcategories}
-                  onChange={(e) => setFormData(prev => ({ ...prev, subcategories: e.target.value }))}
-                  placeholder="Enter subcategories, one per line"
-                  rows={6}
-                  required
-                />
+                <Label>Subcategories (tree)</Label>
+                <TreeEditor nodes={treeSubcategories} setNodes={setTreeSubcategories} />
               </div>
               <div className="flex justify-end space-x-2">
                 <Button

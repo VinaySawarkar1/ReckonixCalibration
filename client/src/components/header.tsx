@@ -28,17 +28,17 @@ export default function Header() {
 
   return (
     <>
-      <nav className="bg-white shadow-lg sticky top-0 z-50">
+      <nav className="shadow-2xl sticky top-0 z-50" style={{ background:  '#f9f9f9' }}>
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
             <div className="flex items-center">
               <Link href="/" className="flex-shrink-0">
                 <div>
-                  <h1 className="text-2xl font-bold font-cinzel-decorative" style={{ color: '#800000' }}>
+                  <h1 className="text-2xl font-bold" style={{ fontFamily: 'Cinzel Decorative, serif', color: '#800000' }}>
                     RECKONIX
                   </h1>
-                  <p className="text-xs -mt-1" style={{ color: '#800000' }}>
+                  <p className="text-xs -mt-1" style={{ fontFamily: 'Cinzel Decorative, serif', color: '#800000' }}>
                     Test. Measure. Calibrator
                   </p>
                 </div>
@@ -70,7 +70,7 @@ export default function Header() {
               <Button
                 variant="ghost"
                 onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-                className="text-gray-700 hover:text-primary"
+                className="text-white hover:text-primary"
               >
                 {mobileMenuOpen ? (
                   <X className="h-6 w-6" />
@@ -87,7 +87,7 @@ export default function Header() {
       <AnimatePresence>
         {mobileMenuOpen && (
           <motion.div
-            className="md:hidden bg-white shadow-lg"
+            className="md:hidden" style={{ background: '#f5f5f5' }}
             initial={{ opacity: 0, height: 0 }}
             animate={{ opacity: 1, height: "auto" }}
             exit={{ opacity: 0, height: 0 }}

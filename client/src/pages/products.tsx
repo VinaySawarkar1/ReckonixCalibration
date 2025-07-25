@@ -12,6 +12,40 @@ import { useRef } from "react";
 
 // Remove hardcoded categories and subcategories. Use dynamic fetch.
 
+// Helper to render nested subcategories as a tree
+function SubcategoryTree({ subcategories, onSelect, activeMain, activeSub, parentPath = [] }) {
+  return (
+    <ul className="pl-4">
+      {subcategories.map((sub, idx) => {
+        const name = typeof sub === 'string' ? sub : sub.name;
+        const children = typeof sub === 'string' ? [] : sub.children || [];
+        const path = [...parentPath, name];
+        const isActive = activeSub === path.join(' > ');
+        return (
+          <li key={name + idx}>
+            <button
+              className={`flex items-center w-full py-1 text-xs font-medium text-left transition-all duration-150 border-l-4 ${isActive ? 'bg-[#007575] text-white border-white' : 'text-white border-transparent hover:bg-[#007575] hover:text-white'}`}
+              onClick={() => onSelect(path)}
+              aria-current={isActive ? 'page' : undefined}
+            >
+              {name}
+            </button>
+            {children.length > 0 && (
+              <SubcategoryTree
+                subcategories={children}
+                onSelect={onSelect}
+                activeMain={activeMain}
+                activeSub={activeSub}
+                parentPath={path}
+              />
+            )}
+          </li>
+        );
+      })}
+    </ul>
+  );
+}
+
 export default function Products() {
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("All");
@@ -43,10 +77,15 @@ export default function Products() {
   const toggleExpand = (mainName: string) => {
     setExpanded(prev => ({ ...prev, [mainName]: !prev[mainName] }));
   };
-  // Filter products based on sidebar selection
+  // New: handle tree path for subcategory selection
+  const handleSubcategorySelect = (path) => {
+    setActiveSub(path.join(' > '));
+  };
+  // Filter products based on sidebar selection (tree path)
   const sidebarFilteredProducts = safeProducts.filter(product => {
     if (!activeMain) return true;
     if (activeMain && !activeSub) return product.category === activeMain;
+    // For nested subcategories, match full path
     return product.category === activeMain && product.subcategory === activeSub;
   }).filter(product => {
     const matchesSearch = product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -115,21 +154,12 @@ export default function Products() {
         {/* Sidebar */}
         <div
           ref={sidebarRef}
-          className="hidden md:flex sticky top-16 w-64 z-30 flex-col bg-[#e6f0fa] shadow-inner border-r border-maroon-900 shadow-xl max-h-[calc(100vh-64px)] overflow-hidden pr-4"
+          className="hidden md:flex sticky top-16 w-64 z-30 flex-col bg-[#005d5d] shadow-inner border-r border-maroon-900 shadow-xl max-h-[calc(100vh-64px)] overflow-hidden pr-4"
         >
           {/* Decorative SVG background shapes */}
-          <div className="absolute inset-0 pointer-events-none z-0">
-            <svg width="100%" height="100%" viewBox="0 0 256 1024" fill="none" xmlns="http://www.w3.org/2000/svg" className="w-full h-full">
-              <circle cx="60" cy="80" r="40" fill="#fff" fillOpacity="0.07" />
-              <circle cx="200" cy="200" r="24" fill="#fff" fillOpacity="0.10" />
-              <rect x="-40" y="400" width="120" height="120" rx="32" fill="#fff" fillOpacity="0.06" />
-              <polygon points="180,700 220,740 180,780 140,740" fill="#fff" fillOpacity="0.08" />
-              <ellipse cx="120" cy="900" rx="60" ry="24" fill="#fff" fillOpacity="0.05" />
-              <line x1="30" y1="600" x2="230" y2="650" stroke="#fff" strokeWidth="8" opacity="0.06" />
-            </svg>
-          </div>
+          {/* Remove or keep SVG shapes as desired, but they may be less visible on dark bg */}
           {/* Raise z-index of menu content above shapes */}
-          <div className="bg-transparent text-black font-bold px-6 py-3 text-lg tracking-wide shadow-lg relative z-10">Product Category</div>
+          <div className="bg-transparent text-white font-bold px-6 py-3 text-lg tracking-wide shadow-lg relative z-10">Product Category</div>
           <div className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-maroon-200 scrollbar-track-maroon-900">
             <nav className="flex flex-col py-4 gap-1 relative z-10">
               {sidebar.map(main => (
@@ -137,35 +167,25 @@ export default function Products() {
                   <button
                     onMouseEnter={() => setHoveredMain(main.name)}
                     onMouseLeave={() => setHoveredMain(null)}
-                    className={`flex items-center w-full px-6 py-2 text-sm font-medium transition-all duration-150 border-l-4 rounded-none text-left ${activeMain === main.name ? 'bg-maroon-900 text-black border-maroon-400' : 'text-black border-transparent hover:bg-maroon-800 hover:text-white'}`}
+                    className={`flex items-center w-full px-6 py-2 text-sm font-medium transition-all duration-150 border-l-4 rounded-none text-left ${activeMain === main.name ? 'bg-[#007575] text-white border-white' : 'text-white border-transparent hover:bg-[#007575] hover:text-white'}`}
                     onClick={() => {
                       setActiveMain(main.name);
                       setActiveSub("");
                     }}
                     aria-current={activeMain === main.name ? 'page' : undefined}
                   >
-                    {(mainIcons[main.name as keyof typeof mainIcons] || (() => <Gauge className="inline-block mr-2 h-5 w-5 text-black" />))(activeMain === main.name, hoveredMain === main.name)}
+                    {(mainIcons[main.name as keyof typeof mainIcons] || (() => <Gauge className="inline-block mr-2 h-5 w-5 text-white" />))(true, true)}
                     {main.name}
                   </button>
-                  <ul className="pl-10 py-1">
-                    {(main.subcategories || []).map(sub => (
-                      <li key={typeof sub === 'string' ? sub : sub.id}>
-                        <button
-                          onMouseEnter={() => setHoveredSub(typeof sub === 'string' ? sub : sub.name)}
-                          onMouseLeave={() => setHoveredSub(null)}
-                          className={`flex items-center w-full py-1 text-xs font-medium text-left transition-all duration-150 border-l-4 ${activeMain === main.name && activeSub === (typeof sub === 'string' ? sub : sub.name) ? 'bg-maroon-900 text-black border-maroon-400' : 'text-black border-transparent hover:bg-maroon-700 hover:text-white'}`}
-                          onClick={() => {
-                            setActiveMain(main.name);
-                            setActiveSub(typeof sub === 'string' ? sub : sub.name);
-                          }}
-                          aria-current={activeMain === main.name && activeSub === (typeof sub === 'string' ? sub : sub.name) ? 'page' : undefined}
-                        >
-                          {getSubIcon(typeof sub === 'string' ? sub : sub.name, activeMain === main.name && activeSub === (typeof sub === 'string' ? sub : sub.name), hoveredSub === (typeof sub === 'string' ? sub : sub.name))}
-                          {typeof sub === 'string' ? sub : sub.name}
-                        </button>
-                      </li>
-                    ))}
-                  </ul>
+                  {/* Render nested subcategories as a tree */}
+                  {main.subcategories && main.subcategories.length > 0 && (
+                    <SubcategoryTree
+                      subcategories={main.subcategories}
+                      onSelect={handleSubcategorySelect}
+                      activeMain={activeMain}
+                      activeSub={activeSub}
+                    />
+                  )}
                 </div>
               ))}
             </nav>

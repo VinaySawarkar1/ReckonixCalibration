@@ -49,6 +49,9 @@ model Subcategory {
   name       String
   categoryId Int
   category   Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  parentId   Int?     // For nested subcategories
+  parent     Subcategory?   @relation("SubcategoryParent", fields: [parentId], references: [id])
+  children   Subcategory[]  @relation("SubcategoryParent")
 }
 
 model Customer {

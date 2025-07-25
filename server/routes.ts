@@ -224,7 +224,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         include: { images: true },
       });
       res.status(201).json(productWithImages);
-    } catch (err) {
+    } catch (err: any) {
       res.status(500).json({ message: "Failed to add product", error: err.message });
     }
   });
@@ -305,7 +305,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         include: { images: true },
       });
       res.json(productWithImages);
-    } catch (err) {
+    } catch (err: any) {
       res.status(500).json({ message: "Failed to update product", error: err.message });
     }
   });
@@ -374,10 +374,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Category routes (moved up)
   app.get('/api/categories', async (req, res) => {
     try {
+      // Fetch categories with nested subcategories (tree)
       const categories = await prisma.category.findMany({
         include: {
-          subcategories: true,
-        },
+          subcategories: {
+            where: { parentId: null },
+            include: {
+              children: {
+                include: {
+                  children: true // up to 2 levels deep, can be made recursive in frontend
+                }
+              }
+            }
+          }
+        }
       });
       res.json(categories);
     } catch (error) {
@@ -389,23 +399,45 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post('/api/categories', async (req, res) => {
     try {
       const { name, subcategories } = req.body;
-      
-      if (!name || !subcategories || !Array.isArray(subcategories)) {
+      if (!name) {
         return res.status(400).json({ error: 'Invalid category data' });
       }
-
+      // Recursive function to create nested subcategories
+      async function createSubcategories(subs, categoryId, parentId = null) {
+        for (const sub of subs) {
+          const created = await prisma.subcategory.create({
+            data: {
+              name: sub.name,
+              categoryId,
+              parentId,
+            },
+          });
+          if (sub.children && sub.children.length > 0) {
+            await createSubcategories(sub.children, categoryId, created.id);
+          }
+        }
+      }
       const newCategory = await prisma.category.create({
-        data: {
-          name,
-          subcategories: {
-            create: subcategories.map(sub => ({ name: sub })),
-          },
-        },
-        include: {
-          subcategories: true,
-        },
+        data: { name },
       });
-      res.status(201).json(newCategory);
+      if (Array.isArray(subcategories)) {
+        await createSubcategories(subcategories, newCategory.id);
+      }
+      // Fetch with tree for response
+      const categoryWithTree = await prisma.category.findUnique({
+        where: { id: newCategory.id },
+        include: {
+          subcategories: {
+            where: { parentId: null },
+            include: {
+              children: {
+                include: { children: true }
+              }
+            }
+          }
+        }
+      });
+      res.status(201).json(categoryWithTree);
     } catch (error) {
       console.error('Error creating category:', error);
       res.status(500).json({ error: 'Failed to create category' });
@@ -416,29 +448,48 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const id = parseInt(req.params.id);
       const { name, subcategories } = req.body;
-      
-      if (!name || !subcategories || !Array.isArray(subcategories)) {
+      if (!name) {
         return res.status(400).json({ error: 'Invalid category data' });
       }
-
-      const updatedCategory = await prisma.category.update({
-        where: { id },
-        data: {
-          name,
-          subcategories: {
-            deleteMany: {}, // Clear existing subcategories
-            create: subcategories.map(sub => ({ name: sub })),
-          },
-        },
-        include: {
-          subcategories: true,
-        },
-      });
-      if (!updatedCategory) {
-        return res.status(404).json({ error: 'Category not found' });
+      // Delete all subcategories for this category (cascade will handle children)
+      await prisma.subcategory.deleteMany({ where: { categoryId: id } });
+      // Recursive function to create nested subcategories
+      async function createSubcategories(subs, categoryId, parentId = null) {
+        for (const sub of subs) {
+          const created = await prisma.subcategory.create({
+            data: {
+              name: sub.name,
+              categoryId,
+              parentId,
+            },
+          });
+          if (sub.children && sub.children.length > 0) {
+            await createSubcategories(sub.children, categoryId, created.id);
+          }
+        }
       }
-      
-      res.json(updatedCategory);
+      await prisma.category.update({
+        where: { id },
+        data: { name },
+      });
+      if (Array.isArray(subcategories)) {
+        await createSubcategories(subcategories, id);
+      }
+      // Fetch with tree for response
+      const categoryWithTree = await prisma.category.findUnique({
+        where: { id },
+        include: {
+          subcategories: {
+            where: { parentId: null },
+            include: {
+              children: {
+                include: { children: true }
+              }
+            }
+          }
+        }
+      });
+      res.json(categoryWithTree);
     } catch (error) {
       console.error('Error updating category:', error);
       res.status(500).json({ error: 'Failed to update category' });
@@ -534,6 +585,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Messages routes
   app.post("/api/messages", async (req: Request, res: Response) => {
     try {
+      console.log("/api/messages received:", req.body); // DEBUG LOG
       const messageData = insertContactMessageSchema.parse(req.body);
       // Remove phone before saving to DB
       const { phone, ...dbData } = messageData;
@@ -1038,7 +1090,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         data: { section, url },
       });
       res.status(201).json(image);
-    } catch (err) {
+    } catch (err: any) {
       res.status(500).json({ message: "Failed to add image", error: err.message });
     }
   });
@@ -1050,7 +1102,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     try {
       const image = await prisma.galleryImage.delete({ where: { id } });
       res.json({ message: "Image deleted", image });
-    } catch (err) {
+    } catch (err: any) {
       res.status(404).json({ message: "Image not found" });
     }
   });

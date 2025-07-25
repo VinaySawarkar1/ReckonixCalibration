@@ -60,7 +60,7 @@ export default function Contact() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.email || !formData.message) {
+    if (!formData.name || !formData.email || !formData.subject || !formData.message) {
       toast({
         title: "Missing Information",
         description: "Please fill in all required fields.",
@@ -84,6 +84,14 @@ export default function Contact() {
       });
       return;
     }
+    if (formData.subject.trim().length < 2) {
+      toast({
+        title: "Invalid Subject",
+        description: "Subject must be at least 2 characters.",
+        variant: "destructive",
+      });
+      return;
+    }
     if (formData.message.trim().length < 10) {
       toast({
         title: "Message Too Short",
@@ -92,7 +100,15 @@ export default function Contact() {
       });
       return;
     }
-    submitMessage.mutate(formData);
+    // Only send required fields
+    const payload = {
+      name: formData.name.trim(),
+      email: formData.email.trim(),
+      subject: formData.subject.trim(),
+      message: formData.message.trim(),
+    };
+    if (formData.phone) payload.phone = formData.phone.trim();
+    submitMessage.mutate(payload);
   };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -108,7 +124,7 @@ export default function Contact() {
       <section className="relative bg-[#800000] text-white py-6 overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g stroke="white" strokeWidth="2" opacity="0.5">
+          <g stroke="white" stroke-width="2" opacity="0.5">
             <polyline points="0,100 300,100 400,200 700,200" />
             <polyline points="200,0 500,0 600,100 900,100" />
             <polyline points="400,200 700,200 800,300 1100,300" />

@@ -7,6 +7,22 @@ import { fetchCategories, Category as CategoryType } from "@/lib/utils";
 
 // Remove hardcoded subcategories. Use dynamic fetch.
 
+// Helper to flatten tree to paths
+function getSubcategoryPaths(subs: (string | { name: string; children?: (string | { name: string; children?: string[] })[] })[], parentPath: string[] = []) {
+  let paths: string[] = [];
+  for (const sub of subs) {
+    const name = typeof sub === 'string' ? sub : sub.name;
+    const children = typeof sub === 'string' ? [] : sub.children || [];
+    const path = [...parentPath, name];
+    if (children.length > 0) {
+      paths = paths.concat(getSubcategoryPaths(children, path));
+    } else {
+      paths.push(path.join(' > '));
+    }
+  }
+  return paths;
+}
+
 export default function ProductFormV2({
   initialData = {},
   onSubmit,
@@ -84,9 +100,23 @@ export default function ProductFormV2({
   const [imageInputMode, setImageInputMode] = useState<"upload" | "url">("upload");
   const [homeFeatured, setHomeFeatured] = useState(initialData.homeFeatured || false);
   const [categories, setCategories] = React.useState<CategoryType[]>([]);
+  const [subcategoryOptions, setSubcategoryOptions] = React.useState<string[]>([]);
   React.useEffect(() => {
-    fetchCategories().then(setCategories);
+    fetchCategories().then(cats => {
+      setCategories(cats);
+      // If a category is selected, flatten its subcategories to paths
+      const cat = cats.find(c => c.name === category);
+      if (cat) setSubcategoryOptions(getSubcategoryPaths(cat.subcategories));
+      else setSubcategoryOptions([]);
+    });
   }, []);
+  React.useEffect(() => {
+    // Update subcategory options when category changes
+    const cat = categories.find(c => c.name === category);
+    if (cat) setSubcategoryOptions(getSubcategoryPaths(cat.subcategories));
+    else setSubcategoryOptions([]);
+    setSubcategory("");
+  }, [category, categories]);
 
   function handleImageChange(e: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(e.target.files || []);
@@ -264,13 +294,17 @@ export default function ProductFormV2({
         </div>
         <div>
           <label className="block text-sm font-medium mb-1">Subcategory</label>
-          <Select value={subcategory} onValueChange={setSubcategory} disabled={!category}>
+          <Select
+            value={subcategory || ""}
+            onValueChange={value => setSubcategory(value)}
+            disabled={!category}
+          >
             <SelectTrigger className="bg-white">
               <SelectValue />
             </SelectTrigger>
             <SelectContent className="bg-white">
-              {(categories.find(cat => cat.name === category)?.subcategories || []).filter(subcat => typeof subcat === 'string').map((subcat) => (
-                <SelectItem key={subcat} value={subcat}>{subcat}</SelectItem>
+              {subcategoryOptions.map((path) => (
+                <SelectItem key={path} value={path}>{path}</SelectItem>
               ))}
             </SelectContent>
           </Select>

@@ -116,41 +116,66 @@ export default function Home() {
   });
 
   return (
-    <div className="min-h-screen">
+    <div>
       {/* Hero Section */}
-      <section className="relative bg-white text-[#800000] py-6 overflow-hidden">
-        {/* Geometric Line Pattern Overlay */}
-        <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g stroke="#e6bfc0" strokeWidth="2" opacity="0.5">
-            <polyline points="0,100 300,100 400,200 700,200" />
-            <polyline points="200,0 500,0 600,100 900,100" />
-            <polyline points="400,200 700,200 800,300 1100,300" />
-            <polyline points="600,100 900,100 1000,200 1300,200" />
-            <polyline points="800,300 1100,300 1200,400 1440,400" />
-            <polyline points="1000,200 1300,200 1400,300 1440,300" />
-            <polyline points="100,50 400,50 500,150 800,150" />
-            <polyline points="300,150 600,150 700,250 1000,250" />
-            <polyline points="500,250 800,250 900,350 1200,350" />
-            <polyline points="700,50 1000,50 1100,150 1400,150" />
-            <polyline points="900,150 1200,150 1300,250 1440,250" />
-            <polyline points="1100,250 1400,250 1440,350 1440,350" />
-            <polyline points="0,200 200,200 300,300 500,300" />
-            <polyline points="200,300 400,300 500,400 700,400" />
-            <polyline points="600,350 900,350 1000,400 1200,400" />
-          </g>
-        </svg>
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <motion.div 
-            className="text-center"
-            initial={{ opacity: 0, y: 30 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.8 }}
-          >
-            <h1 className="font-cinzel text-3xl md:text-4xl font-bold mb-6 text-[#800000]">Get In Touch</h1>
-            <p className="text-xl text-[#800000] max-w-3xl mx-auto">
-              Ready to discuss your calibration and testing needs? We're here to help you find the perfect solution.
-            </p>
-          </motion.div>
+      <section className="relative text-white py-20 overflow-hidden" style={{ background: 'transparent', minHeight: '60vh' }}>
+        {/* Visible dark blurred effect over video, behind text */}
+        <div className="absolute inset-0 z-10" style={{ background: 'rgba(10,10,10,0.7)', filter: 'blur(12px)' }} />
+        {/* Background Video */}
+        <video
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="absolute inset-0 w-full h-full object-cover z-0"
+          style={{ objectFit: 'cover', minHeight: '100%', minWidth: '100%' }}
+        >
+          <source src="/hero-bg.mp4" type="video/mp4" />
+        </video>
+        {/* Optional: subtle overlay for text readability (can be removed if too strong) */}
+        {/* <div className="absolute inset-0 bg-black bg-opacity-20 z-20 pointer-events-none" /> */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-30">
+          <div className="flex flex-col md:flex-row items-center justify-between gap-8 py-12">
+            <motion.div
+              className="w-full md:w-1/2 text-left"
+              initial={{ opacity: 0, x: -30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8 }}
+            >
+              <h1 className="text-4xl md:text-5xl font-bold mb-6 drop-shadow-lg" style={{ color: '#fff' }}>
+                We are manufacturers of Calibration Systems, Testing Systems, and Measuring Systems.
+              </h1>
+            </motion.div>
+            <motion.div
+              className="w-full md:w-1/2 text-left md:text-right"
+              initial={{ opacity: 0, x: 30 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ duration: 0.8, delay: 0.2 }}
+            >
+              <p className="text-xl md:text-2xl mb-8 drop-shadow" style={{ color: '#fff' }}>
+                Precision engineering meets cutting-edge technology. Trust Reckonix for all your calibration, testing, and measurement needs across Glob.
+              </p>
+              <div className="flex flex-col sm:flex-row gap-4 md:justify-end mt-8">
+                <Button
+                  asChild
+                  className="bg-[#800000] text-white px-8 py-3 hover:bg-[#6b0000] transform hover:scale-105 transition-all text-lg font-semibold shadow-lg"
+                >
+                  <Link href="/products">View Products</Link>
+                </Button>
+                <Button
+                  variant="outline"
+                  className="border-2 border-white bg-transparent text-white px-8 py-3 hover:bg-white hover:text-[#800000] transition-all text-lg font-semibold shadow-lg"
+                  onClick={() => {
+                    const catalogSection = document.getElementById('download-catalog');
+                    catalogSection?.scrollIntoView({ behavior: 'smooth' });
+                  }}
+                >
+                  <Download className="mr-2 h-5 w-5" />
+                  Download Catalog
+                </Button>
+              </div>
+            </motion.div>
+          </div>
         </div>
       </section>
 
@@ -398,7 +423,7 @@ export default function Home() {
       <section className="relative py-16 bg-[#800000] text-white overflow-hidden">
         {/* Geometric Line Pattern Overlay */}
         <svg className="absolute inset-0 w-full h-full pointer-events-none opacity-30" width="100%" height="100%" viewBox="0 0 1440 400" fill="none" xmlns="http://www.w3.org/2000/svg">
-          <g stroke="white" strokeWidth="2" opacity="0.5">
+          <g stroke="white" stroke-width="2" opacity="0.5">
             <polyline points="0,100 300,100 400,200 700,200" />
             <polyline points="200,0 500,0 600,100 900,100" />
             <polyline points="400,200 700,200 800,300 1100,300" />
